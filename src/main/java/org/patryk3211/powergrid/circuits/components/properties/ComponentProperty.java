@@ -47,7 +47,7 @@ public abstract class ComponentProperty<T> {
     }
 
     public ResourceLocation id() {
-        return new ResourceLocation(namespace, name);
+        return ResourceLocation.fromNamespaceAndPath(namespace, name);
     }
 
     public String translationKey() {

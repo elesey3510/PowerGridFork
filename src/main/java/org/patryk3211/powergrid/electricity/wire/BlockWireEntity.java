@@ -15,6 +15,7 @@
  */
 package org.patryk3211.powergrid.electricity.wire;
 
+import dev.ryanhcode.sable.companion.SableCompanion;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -29,6 +30,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +46,7 @@ public class BlockWireEntity extends WireEntity implements IComplexRaycast {
     public AABB mainBoundingBox;
     public final List<AABB> boundingBoxes = new ArrayList<>();
     public final List<Point> segments = new ArrayList<>();
+    private AABB deSabledBB;
 
     private float totalLength = 0;
 
@@ -162,6 +165,13 @@ public class BlockWireEntity extends WireEntity implements IComplexRaycast {
         setBoundingBox(makeBoundingBox());
     }
 
+    @Override
+    public AABB getDeSabledBB() {
+        if(SableCompanion.INSTANCE.getContaining(this) == null || mainBoundingBox == null)
+            return getBoundingBox();
+        return mainBoundingBox.move(position());
+    }
+
     public float getTotalLength() {
         return totalLength;
     }
@@ -185,7 +195,6 @@ public class BlockWireEntity extends WireEntity implements IComplexRaycast {
         var world = level();
         var temperature = getTemperature();
 
-        var pos = position();
         if(isOverheated()) {
             if(world.isClientSide && !particlesSpawned) {
                 for(var segment : segments) {
@@ -286,8 +295,9 @@ public class BlockWireEntity extends WireEntity implements IComplexRaycast {
     @Override
     public @Nullable Vec3 raycast(Vec3 min, Vec3 max) {
         Vec3 closestHit = null;
-        min = min.subtract(position());
-        max = max.subtract(position());
+        var localPos = position();
+        min = min.subtract(localPos);
+        max = max.subtract(localPos);
         double distance = max.distanceToSqr(min);
         for(var bb : boundingBoxes) {
             var hit = bb.clip(min, max);
@@ -296,7 +306,7 @@ public class BlockWireEntity extends WireEntity implements IComplexRaycast {
             var hitDistance = hit.get().distanceToSqr(min);
             if(hitDistance < distance) {
                 distance = hitDistance;
-                closestHit = hit.get().add(position());
+                closestHit = hit.get().add(localPos);
             }
         }
         return closestHit;
@@ -428,6 +438,16 @@ public class BlockWireEntity extends WireEntity implements IComplexRaycast {
 
         sendExtraData();
         return junction;
+    }
+
+    @Override
+    public void sublevelRotate(Rotation rotation) {
+        for(int i = 0; i < segments.size(); ++i) {
+            var point = segments.get(i);
+            segments.set(i, new Point(rotation.rotate(point.direction), point.gridLength));
+        }
+        bakeBoundingBoxes();
+        sendExtraData();
     }
 
     public static class Point {

@@ -18,6 +18,8 @@ package org.patryk3211.powergrid.kinetics.punchcard;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -94,8 +96,8 @@ public class PunchCardReaderBlockEntity extends ElectricKineticBlockEntity {
         var index = item.isEmpty() ? -1 : Math.min(Mth.floor(angle), 15);
         if(index != oldIndex) {
             byte value = 0;
-            if(!item.isEmpty() && item.hasTag()) {
-                var data = item.getTag().getByteArray("Data");
+            if(!item.isEmpty() && item.has(DataComponents.CUSTOM_DATA)) {
+                var data = item.get(DataComponents.CUSTOM_DATA).copyTag().getByteArray("Data");
                 if(data.length == 16) {
                     value = data[index];
                 }
@@ -129,8 +131,8 @@ public class PunchCardReaderBlockEntity extends ElectricKineticBlockEntity {
     }
 
     @Override
-    protected void read(CompoundTag compound, boolean clientPacket) {
-        super.read(compound, clientPacket);
+    protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(compound, registries, clientPacket);
         // Always sync
         prevAngle = angle = compound.getFloat("Angle");
         if(clientPacket)
@@ -138,8 +140,8 @@ public class PunchCardReaderBlockEntity extends ElectricKineticBlockEntity {
     }
 
     @Override
-    protected void write(CompoundTag compound, boolean clientPacket) {
-        super.write(compound, clientPacket);
+    protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(compound, registries, clientPacket);
         compound.putFloat("Angle", angle);
         if(clientPacket && maxAngle != null)
             compound.putFloat("MaxAngle", maxAngle);

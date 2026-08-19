@@ -16,9 +16,12 @@
 package org.patryk3211.powergrid.equipment.portablebattery;
 
 import com.simibubi.create.AllSoundEvents;
+import net.createmod.catnip.codecs.CatnipCodecUtils;
 import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Nameable;
@@ -39,11 +42,12 @@ public class PortableBatteryBlockEntity extends ElectricBlockEntity implements N
     private SwitchedWire wire;
     private Component name;
 
-    private CompoundTag vanillaTag = new CompoundTag();
+    private DataComponentPatch componentPatch;
 
     public PortableBatteryBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
         maxCharge = ((PortableBatteryBlock) state.getBlock()).capacity();
+        componentPatch = DataComponentPatch.EMPTY;
     }
 
     @Override
@@ -88,31 +92,32 @@ public class PortableBatteryBlockEntity extends ElectricBlockEntity implements N
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         int prev = charge;
         charge = tag.getInt("Charge");
         capacityLevel = tag.getInt("CapacityLevel");
         maxCharge = BatteryUtils.getMaxCharge(capacityLevel);
 
         if(tag.contains("CustomName")) {
-            name = Component.Serializer.fromJson(tag.getString("CustomName"));
+            name = Component.Serializer.fromJson(tag.getString("CustomName"),registries);
         } else {
             name = null;
         }
-        vanillaTag = tag.getCompound("VanillaTag");
+        componentPatch = CatnipCodecUtils.decode(DataComponentPatch.CODEC, registries, tag.getCompound("Components")).orElse(DataComponentPatch.EMPTY);
         if(prev != 0 && prev != charge && charge == maxCharge && clientPacket)
             playFilledEffect();
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         tag.putInt("Charge", charge);
         tag.putInt("CapacityLevel", capacityLevel);
         if(name != null)
-            tag.putString("CustomName", Component.Serializer.toJson(name));
-        tag.put("VanillaTag", vanillaTag);
+            tag.putString("CustomName", Component.Serializer.toJson(name, registries));
+        tag.put("Components", CatnipCodecUtils.encode(DataComponentPatch.CODEC, registries, componentPatch)
+                .orElse(new CompoundTag()));
     }
 
     public void setCapacityEnchantLevel(int level) {
@@ -135,12 +140,12 @@ public class PortableBatteryBlockEntity extends ElectricBlockEntity implements N
         this.name = name;
     }
 
-    public void setTags(CompoundTag vanillaTag) {
-        this.vanillaTag = vanillaTag;
+    public void setDataPatch(DataComponentPatch patch) {
+        this.componentPatch = patch;
     }
 
-    public CompoundTag getVanillaTag() {
-        return vanillaTag.copy();
+    public DataComponentPatch getDataPatch() {
+        return componentPatch;
     }
 
     public int getCharge() {

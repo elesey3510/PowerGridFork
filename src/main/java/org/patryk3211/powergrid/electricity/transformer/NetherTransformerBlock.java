@@ -7,9 +7,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RenderShape;
@@ -116,7 +116,7 @@ public class NetherTransformerBlock extends ElectricBlock implements IAcceptConn
         };
         var axis = state.getValue(HORIZONTAL_AXIS);
         var offsetPos = pos.relative(axis, x);
-        if(!TransformerMediumBlock.updateShapeVerifyPart(0, y, pos, neighborPos, state, level))
+        if(!updateShapeVerifyPart(0, y, pos, neighborPos, state, level))
             return Blocks.AIR.defaultBlockState();
         var portalState = level.getBlockState(offsetPos);
         if(!portalState.is(Blocks.NETHER_PORTAL))
@@ -125,7 +125,7 @@ public class NetherTransformerBlock extends ElectricBlock implements IAcceptConn
     }
 
     @Override
-    public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
         return ModdedBlocks.TRANSFORMER_CORE.asStack();
     }
 
@@ -138,4 +138,26 @@ public class NetherTransformerBlock extends ElectricBlock implements IAcceptConn
     public BlockEntityType<? extends NetherTransformerBlockEntity> getBlockEntityType() {
         return ModdedBlockEntities.NETHER_TRANSFORMER.get();
     }
+
+    public static boolean updateShapeVerifyPart(int offsetX, int offsetY, BlockPos pos, BlockPos neighborPos, BlockState state, LevelAccessor level) {
+        var axis = state.getValue(HORIZONTAL_AXIS);
+        var offsetPos = pos.relative(axis, offsetX).relative(Direction.Axis.Y, offsetY);
+        if (!neighborPos.equals(offsetPos))
+            return true; // Ignore
+        var offsetState = level.getBlockState(offsetPos);
+        if (!offsetState.is(state.getBlock()))
+            return false;
+        int part = state.getValue(PART);
+        int expectPart = part;
+        if (offsetX > 0)
+            expectPart |= 1;
+        else if (offsetX < 0)
+            expectPart &= ~1;
+        if (offsetY > 0)
+            expectPart |= 2;
+        else if (offsetY < 0)
+            expectPart &= ~2;
+        return offsetState.getValue(HORIZONTAL_AXIS) == axis && offsetState.getValue(PART) == expectPart;
+    }
+
 }

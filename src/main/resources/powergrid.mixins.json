@@ -8,17 +8,20 @@
     "ArmBlockEntityMixin",
     "BeltDeployerMixin",
     "BlockStateBaseMixin",
+    "ChunkMapAccessor",
+    "ChunkMapAccessor$TrackedEntityAccessor",
     "ChuteBlockEntityMixin",
     "EntityMixin",
     "FanProcessingMixin",
     "FluidPropagatorMixin",
     "KineticBlockEntityAccessor",
-    "LevelEntitiesAccessor",
     "LightningAccessor",
     "PlayerMixin",
     "RecipeApplierMixin",
     "SheepMixin",
-    "SoundEntryBuilderMixin"
+    "SoundEntryBuilderMixin",
+    "sable.SubLevelAssemblerMixin",
+    "simulated.GimbalSensorScrollMixin"
   ],
   "injectors": {
     "defaultRequire": 1

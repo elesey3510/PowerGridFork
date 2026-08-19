@@ -169,22 +169,22 @@ public class NeonBulbComponent extends OrientableComponent implements IRenderedC
         var yRotation = placed.get(VERTICAL) ? 0 : 1;
         var lowerOffset = placed.get(VERTICAL) ? -1/16f : 0f;
 
-        var color = placed.get(COLOR).getTextureDiffuseColors();
-        var red = color[0];
-        var green = color[1];
-        var blue = color[2];
+        var color = placed.get(COLOR).getTextureDiffuseColor();
+        var red = (color >> 16) & 0xFF;
+        var green = (color >> 8) & 0xFF;
+        var blue = color & 0xFF;
 
         int a1 = 0, r1 = 0, g1 = 0, b1 = 0, a2 = 0, r2 = 0, g2 = 0, b2 = 0;
         if(placed.customData instanceof LerpPair pair) { 
             a1 = (int) (pair.first.getValue(partialTicks) * 128);
-            r1 = (int) (red * pair.first.getValue(partialTicks) * 128);
-            g1 = (int) (green * pair.first.getValue(partialTicks) * 128);
-            b1 = (int) (blue * pair.first.getValue(partialTicks) * 128);
+            r1 = (int) (red * pair.first.getValue(partialTicks) * 128 / 256);
+            g1 = (int) (green * pair.first.getValue(partialTicks) * 128 / 256);
+            b1 = (int) (blue * pair.first.getValue(partialTicks) * 128 / 256);
 
             a2 = (int) (pair.second.getValue(partialTicks) * 128);
-            r2 = (int) (red * pair.second.getValue(partialTicks) * 128);
-            g2 = (int) (green * pair.second.getValue(partialTicks) * 128);
-            b2 = (int) (blue * pair.second.getValue(partialTicks) * 128);
+            r2 = (int) (red * pair.second.getValue(partialTicks) * 128 / 256);
+            g2 = (int) (green * pair.second.getValue(partialTicks) * 128 / 256);
+            b2 = (int) (blue * pair.second.getValue(partialTicks) * 128 / 256);
         }
 
         var center = 1 / 16f;
@@ -210,7 +210,7 @@ public class NeonBulbComponent extends OrientableComponent implements IRenderedC
                     .translate(center, center, center)
                     .rotateYDegrees(yRotation * (180 + orientation.ordinal() * 90))
                     .translateBack(center, center, center)
-                    .translate(0, lowerOffset, 0) 
+                    .translate(0, lowerOffset, 0)
                     .renderInto(ms, bufferSource.getBuffer(RenderTypes.additive()));
         }
     }

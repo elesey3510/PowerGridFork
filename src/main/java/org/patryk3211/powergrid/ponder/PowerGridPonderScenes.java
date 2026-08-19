@@ -28,7 +28,7 @@ import org.patryk3211.powergrid.ponder.scenes.*;
 
 public class PowerGridPonderScenes {
     public static void register(PonderSceneRegistrationHelper<ResourceLocation> helper) {
-        PonderSceneRegistrationHelper<ItemProviderEntry<?>> HELPER = helper.withKeyFunction(RegistryEntry::getId);
+        PonderSceneRegistrationHelper<ItemProviderEntry<?,?>> HELPER = helper.withKeyFunction(RegistryEntry::getId);
 
         HELPER.addStoryBoard(ModdedBlocks.VOLTAGE_METER, "gauges", GaugeScenes::voltage);
         HELPER.addStoryBoard(ModdedBlocks.CURRENT_METER, "gauges", GaugeScenes::current);
@@ -115,7 +115,7 @@ public class PowerGridPonderScenes {
         HELPER.forComponents(ModdedItems.MAGNET)
                 .addStoryBoard("magnet", MagnetScenes::magnet)
                 .addStoryBoard("lightning_attractor", MagnetScenes::lightningAttractor);
-        helper.addStoryBoard(new ResourceLocation("lightning_rod"), "lightning_attractor", MagnetScenes::lightningAttractor);
+        helper.addStoryBoard(ResourceLocation.withDefaultNamespace("lightning_rod"), "lightning_attractor", MagnetScenes::lightningAttractor);
 
         HELPER.addStoryBoard(ModdedBlocks.BASIN_HEATER, "basin_heater", DeviceScenes::basinHeater, PowerGridPonderTags.ELECTRIC_DEVICES);
 
@@ -158,12 +158,12 @@ public class PowerGridPonderScenes {
         HELPER.addStoryBoard(ModdedItems.POTENTIOMETER, "circuit/potentiometer", CircuitScenes::potentiometer, PowerGridPonderTags.CIRCUIT_COMPONENTS);
         HELPER.addStoryBoard(ModdedItems.REGULATOR_TUBE, "circuit/regulator_tube", CircuitScenes::regulatorTube, PowerGridPonderTags.CIRCUIT_COMPONENTS);
         HELPER.addStoryBoard(ModdedItems.NEON_BULB, "circuit/neon", CircuitScenes::neonBulb, PowerGridPonderTags.CIRCUIT_COMPONENTS);
+        HELPER.addStoryBoard(ModdedItems.DISPLAY_MODULE, "circuit/display_module", CircuitScenes::displayModule, PowerGridPonderTags.CIRCUIT_COMPONENTS);
         HELPER.forComponents(ModdedBlocks.FACTORY_LIGHT)
                 .addStoryBoard("factory_light/factory_light", DeviceScenes::factoryLight, PowerGridPonderTags.ELECTRIC_DEVICES, PowerGridPonderTags.CEILING_TILE_ATTACHMENTS)
                 .addStoryBoard("factory_light/factory_light_tall", DeviceScenes::factoryLightTall, PowerGridPonderTags.ELECTRIC_DEVICES, PowerGridPonderTags.CEILING_TILE_ATTACHMENTS)
                 .addStoryBoard("factory_light/factory_light_connect", DeviceScenes::factoryLightConnect, PowerGridPonderTags.ELECTRIC_DEVICES, PowerGridPonderTags.CEILING_TILE_ATTACHMENTS);
 
-        helper.addStoryBoard(new ResourceLocation("paper"), "circuit/label", CircuitScenes::label, PowerGridPonderTags.CIRCUIT_COMPONENTS);
-        HELPER.addStoryBoard(ModdedItems.DISPLAY_MODULE, "circuit/display_module", CircuitScenes::displayModule, PowerGridPonderTags.CIRCUIT_COMPONENTS);
+        helper.addStoryBoard(ResourceLocation.fromNamespaceAndPath(ResourceLocation.DEFAULT_NAMESPACE, "paper"), "circuit/label", CircuitScenes::label, PowerGridPonderTags.CIRCUIT_COMPONENTS);
     }
 }

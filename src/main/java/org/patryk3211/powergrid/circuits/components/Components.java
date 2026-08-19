@@ -27,17 +27,17 @@ import static org.patryk3211.powergrid.PowerGrid.REGISTRATE;
 
 @SuppressWarnings("unused")
 public class Components {
-    public static final RegistryEntry<ViaComponent> VIA = REGISTRATE.component("via", ViaComponent::new)
+    public static final RegistryEntry<Component, ViaComponent> VIA = REGISTRATE.component("via", ViaComponent::new)
             .footprint(1, 1, b -> b.addPad(0, 0))
             .item(AllItems.COPPER_NUGGET, ModdedTags.nuggets("copper"))
             .register();
 
-    public static final RegistryEntry<LabelComponent> LABEL = REGISTRATE.component("label", LabelComponent::new)
+    public static final RegistryEntry<Component, LabelComponent> LABEL = REGISTRATE.component("label", LabelComponent::new)
             .footprint(3, 1, b -> b.withOutline())
             .item(Items.PAPER)
             .register();
 
-    public static final RegistryEntry<ElectronTubeComponent> ELECTRON_TUBE = REGISTRATE.component("electron_tube", ElectronTubeComponent::new)
+    public static final RegistryEntry<Component, ElectronTubeComponent> ELECTRON_TUBE = REGISTRATE.component("electron_tube", ElectronTubeComponent::new)
             .footprint(3, 3, b -> b
                     .addPad(0, 0, 2, "Anode", "A")
                     .addPad(1, 1, 0, "Cathode", "C")
@@ -48,7 +48,7 @@ public class Components {
             .item(AllItems.ELECTRON_TUBE)
             .register();
 
-    public static final RegistryEntry<VFETComponent> VFET = REGISTRATE.component("vfet", VFETComponent::new)
+    public static final RegistryEntry<Component, VFETComponent> VFET = REGISTRATE.component("vfet", VFETComponent::new)
             .footprint(3, 3, b -> b
                     .addPad(0, 0, 0, "Drain", "D")
                     .addPad(2, 0, 1, "Source", "S")
@@ -57,7 +57,7 @@ public class Components {
             .item(ModdedItems.VFET)
             .register();
 
-    public static final RegistryEntry<NPNComponent> BJT_NPN = REGISTRATE.component("bjt_npn", NPNComponent::new)
+    public static final RegistryEntry<Component, NPNComponent> BJT_NPN = REGISTRATE.component("bjt_npn", NPNComponent::new)
             .footprint(3, 2, b -> b
                     .addPad(0, 0, 0, "Collector", "C")
                     .addPad(2, 0, 2, "Emitter", "E")
@@ -66,7 +66,7 @@ public class Components {
             .item(ModdedItems.BJT_NPN)
             .register();
 
-    public static final RegistryEntry<PNPComponent> BJT_PNP = REGISTRATE.component("bjt_pnp", PNPComponent::new)
+    public static final RegistryEntry<Component, PNPComponent> BJT_PNP = REGISTRATE.component("bjt_pnp", PNPComponent::new)
             .footprint(3, 2, b -> b
                     .addPad(2, 0, 0, "Collector", "C")
                     .addPad(0, 0, 2, "Emitter", "E")
@@ -75,7 +75,7 @@ public class Components {
             .item(ModdedItems.BJT_PNP)
             .register();
 
-    public static final RegistryEntry<RegulatorTubeComponent> REGULATOR_TUBE = REGISTRATE.component("regulator_tube", RegulatorTubeComponent::new)
+    public static final RegistryEntry<Component, RegulatorTubeComponent> REGULATOR_TUBE = REGISTRATE.component("regulator_tube", RegulatorTubeComponent::new)
             .footprint(3, 3, b -> b
                     .addPadSharedText(0, 1, 0, "generic.anode", "generic.anode.short")
                     .addPadSharedText(2, 1, 1, "generic.cathode", "generic.cathode.short")
@@ -83,7 +83,7 @@ public class Components {
             .item(ModdedItems.REGULATOR_TUBE)
             .register();
 
-    public static final RegistryEntry<BarretterTubeComponent> BARRETTER_TUBE = REGISTRATE.component("barretter_tube", BarretterTubeComponent::new)
+    public static final RegistryEntry<Component, BarretterTubeComponent> BARRETTER_TUBE = REGISTRATE.component("barretter_tube", BarretterTubeComponent::new)
             .footprint(2, 2, b -> b
                     .addPad(0, 0, 0)
                     .addPad(1, 1, 1)
@@ -91,7 +91,7 @@ public class Components {
             .item(ModdedItems.BARRETTER_TUBE)
             .register();
 
-    public static final RegistryEntry<NeonBulbComponent> NEON_BULB = REGISTRATE.component("neon_bulb", NeonBulbComponent::new)
+    public static final RegistryEntry<Component, NeonBulbComponent> NEON_BULB = REGISTRATE.component("neon_bulb", NeonBulbComponent::new)
             .footprint(2, 2, b -> b
                     .addPad(0, 0, 0)
                     .addPad(1, 1, 1)
@@ -99,7 +99,7 @@ public class Components {
             .item(ModdedItems.NEON_BULB)
             .register();
 
-    public static final RegistryEntry<LightBulbComponent> LIGHT_BULB = REGISTRATE.component("light_bulb", LightBulbComponent::new)
+    public static final RegistryEntry<Component, LightBulbComponent> LIGHT_BULB = REGISTRATE.component("light_bulb", LightBulbComponent::new)
             .footprint(3, 3, b -> b
                     .addPad(0, 1, 0)
                     .addPad(2, 1, 1)
@@ -107,14 +107,14 @@ public class Components {
             .item(ModdedItems.LV_LIGHT_BULB)
             .register();
 
-    public static final RegistryEntry<ConnectorComponent> CONNECTOR = REGISTRATE.component("connector", ConnectorComponent::new)
+    public static final RegistryEntry<Component, ConnectorComponent> CONNECTOR = REGISTRATE.component("connector", ConnectorComponent::new)
             .footprint(3, 3, b -> b
                     .addPad(1, 1, 0)
                     .withOutline())
             .item(ModdedBlocks.WIRE_CONNECTOR)
             .register();
 
-    public static final RegistryEntry<SwitchComponent> SWITCH = REGISTRATE.component("switch", SwitchComponent::new)
+    public static final RegistryEntry<Component, SwitchComponent> SWITCH = REGISTRATE.component("switch", SwitchComponent::new)
             .footprint(4, 3, b -> b
                     .addPad(0, 1, 0)
                     .addPad(3, 1, 1)
@@ -122,7 +122,7 @@ public class Components {
             .item(ModdedBlocks.LV_SWITCH)
             .register();
 
-    public static final RegistryEntry<RelayComponent> RELAY = REGISTRATE.component("relay", RelayComponent::new)
+    public static final RegistryEntry<Component, RelayComponent> RELAY = REGISTRATE.component("relay", RelayComponent::new)
             .footprint(4, 3, b -> b
                     .addPadSharedText(0, 0, 0, "relay.coil", null)
                     .addPadSharedText(0, 2, 1, "relay.coil", null)
@@ -134,7 +134,7 @@ public class Components {
             .item(ModdedItems.RELAY)
             .register();
 
-    public static final RegistryEntry<DoubleRelayComponent> RELAY_DPDT = REGISTRATE.component("relay_dpdt", DoubleRelayComponent::new)
+    public static final RegistryEntry<Component, DoubleRelayComponent> RELAY_DPDT = REGISTRATE.component("relay_dpdt", DoubleRelayComponent::new)
             .footprint(5, 3, b -> b
                     .addPadSharedText(0, 0, 0, "relay.coil", null)
                     .addPadSharedText(0, 2, 1, "relay.coil", null)
@@ -149,7 +149,7 @@ public class Components {
             .item(ModdedItems.RELAY_DPDT)
             .register();
 
-    public static final RegistryEntry<ResistorComponent> RESISTOR = REGISTRATE.component("resistor", ResistorComponent::new)
+    public static final RegistryEntry<Component, ResistorComponent> RESISTOR = REGISTRATE.component("resistor", ResistorComponent::new)
             .footprint(5, 3, b -> b
                     .addPad(0, 1, 0)
                     .addPad(4, 1, 1)
@@ -158,7 +158,7 @@ public class Components {
             .item(ModdedItems.RESISTOR)
             .register();
 
-    public static final RegistryEntry<RedstoneRelayComponent> REDSTONE_RELAY = REGISTRATE.component("redstone_relay", RedstoneRelayComponent::new)
+    public static final RegistryEntry<Component, RedstoneRelayComponent> REDSTONE_RELAY = REGISTRATE.component("redstone_relay", RedstoneRelayComponent::new)
             .footprint(3, 5, b -> b
                     .addPad(1, 0, 0)
                     .addPad(1, 4, 1)
@@ -167,7 +167,7 @@ public class Components {
             .item(ModdedItems.REDSTONE_RELAY)
             .register();
 
-    public static final RegistryEntry<VoltageGaugeComponent> VOLTAGE_GAUGE = REGISTRATE.component("voltage_gauge", VoltageGaugeComponent::new)
+    public static final RegistryEntry<Component, VoltageGaugeComponent> VOLTAGE_GAUGE = REGISTRATE.component("voltage_gauge", VoltageGaugeComponent::new)
             .footprint(5, 5, b -> b
                     .addPad(2, 0, 0)
                     .addPad(2, 4, 1)
@@ -176,7 +176,7 @@ public class Components {
             .item(ModdedBlocks.VOLTAGE_METER)
             .register();
 
-    public static final RegistryEntry<CurrentGaugeComponent> CURRENT_GAUGE = REGISTRATE.component("current_gauge", CurrentGaugeComponent::new)
+    public static final RegistryEntry<Component, CurrentGaugeComponent> CURRENT_GAUGE = REGISTRATE.component("current_gauge", CurrentGaugeComponent::new)
             .footprint(5, 5, b -> b
                     .addPad(2, 0, 0)
                     .addPad(2, 4, 1)
@@ -185,7 +185,7 @@ public class Components {
             .item(ModdedBlocks.CURRENT_METER)
             .register();
 
-    public static final RegistryEntry<DiodeComponent> DIODE = REGISTRATE.component("diode", DiodeComponent::new)
+    public static final RegistryEntry<Component, DiodeComponent> DIODE = REGISTRATE.component("diode", DiodeComponent::new)
             .footprint(5, 3, b -> b
                     .addPadSharedText(0, 1, 0, "generic.cathode", "generic.cathode.short")
                     .addPadSharedText(4, 1, 1, "generic.anode", "generic.anode.short")
@@ -194,7 +194,7 @@ public class Components {
             .item(ModdedItems.DIODE)
             .register();
 
-    public static final RegistryEntry<CapacitorComponent> CAPACITOR = REGISTRATE.component("capacitor", CapacitorComponent::new)
+    public static final RegistryEntry<Component, CapacitorComponent> CAPACITOR = REGISTRATE.component("capacitor", CapacitorComponent::new)
             .footprint(3, 3, b -> b
                     .addPad(0, 1, 0)
                     .addPad(2, 1, 1)
@@ -203,7 +203,7 @@ public class Components {
             .item(ModdedItems.CAPACITOR)
             .register();
 
-    public static final RegistryEntry<InductorComponent> INDUCTOR = REGISTRATE.component("inductor", InductorComponent::new)
+    public static final RegistryEntry<Component, InductorComponent> INDUCTOR = REGISTRATE.component("inductor", InductorComponent::new)
             .footprint(3, 3, b -> b
                     .addPad(0, 1, 0)
                     .addPad(2, 1, 1)
@@ -211,7 +211,7 @@ public class Components {
             .item(ModdedItems.COPPER_COIL)
             .register();
 
-    public static final RegistryEntry<ButtonComponent> BUTTON = REGISTRATE.component("button", ButtonComponent::new)
+    public static final RegistryEntry<Component, ButtonComponent> BUTTON = REGISTRATE.component("button", ButtonComponent::new)
             .footprint(3, 3, b -> b
                     .addPad(0, 1, 0)
                     .addPad(2, 1, 1)
@@ -220,7 +220,7 @@ public class Components {
             .item(ModdedBlocks.LV_BUTTON)
             .register();
 
-    public static final RegistryEntry<PotentiometerComponent> POTENTIOMETER = REGISTRATE.component("potentiometer", PotentiometerComponent::new)
+    public static final RegistryEntry<Component, PotentiometerComponent> POTENTIOMETER = REGISTRATE.component("potentiometer", PotentiometerComponent::new)
             .footprint(5, 5, b -> b
                     .addPad(1, 2, 0)
                     .addPad(2, 3, 1)
@@ -230,7 +230,7 @@ public class Components {
             .item(ModdedItems.POTENTIOMETER)
             .register();
 
-    public static final RegistryEntry<VaristorComponent> VARISTOR = REGISTRATE.component("varistor", VaristorComponent::new)
+    public static final RegistryEntry<Component, VaristorComponent> VARISTOR = REGISTRATE.component("varistor", VaristorComponent::new)
             .footprint(4, 4, b -> b
                     .addPad(0, 1, 0)
                     .addPad(3, 2, 1)
@@ -239,7 +239,7 @@ public class Components {
             .item(ModdedItems.VARISTOR)
             .register();
 
-    public static final RegistryEntry<FuseHolderComponent> FUSE_HOLDER = REGISTRATE.component("fuse_holder", FuseHolderComponent::new)
+    public static final RegistryEntry<Component, FuseHolderComponent> FUSE_HOLDER = REGISTRATE.component("fuse_holder", FuseHolderComponent::new)
             .footprint(4, 3, b -> b
                     .addPad(0, 1, 0)
                     .addPad(3, 1, 1)
@@ -248,7 +248,7 @@ public class Components {
             .item(ModdedBlocks.FUSE_HOLDER)
             .register();
 
-    public static final RegistryEntry<ModularDisplayComponent> DISPLAY_MODULE = REGISTRATE.component("display_module", ModularDisplayComponent::new)
+    public static final RegistryEntry<Component, ModularDisplayComponent> DISPLAY_MODULE = REGISTRATE.component("display_module", ModularDisplayComponent::new)
             .footprint(4, 4, b -> b
                     .addPadSharedText(0, 1, 0, "generic.positive", "generic.positive.short")
                     .addPadSharedText(3, 2, 1, "generic.negative", "generic.negative.short")

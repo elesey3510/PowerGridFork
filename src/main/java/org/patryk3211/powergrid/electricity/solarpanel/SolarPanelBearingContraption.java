@@ -5,6 +5,7 @@ import com.simibubi.create.content.contraptions.AssemblyException;
 import com.simibubi.create.content.contraptions.bearing.BearingContraption;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -73,9 +74,10 @@ public class SolarPanelBearingContraption extends BearingContraption {
         super.addBlock(level, pos, capture);
     }
 
+
     @Override
-    public CompoundTag writeNBT(boolean spawnPacket) {
-        CompoundTag tag = super.writeNBT(spawnPacket);
+    public CompoundTag writeNBT(HolderLookup.Provider registries, boolean spawnPacket) {
+        CompoundTag tag = super.writeNBT(registries, spawnPacket);
         tag.putInt("Panels", panelBlocks);
         tag.putInt("Facing", facing.get3DDataValue());
         tag.putDouble("normalX", panelNormal.x);

@@ -17,18 +17,23 @@ package org.patryk3211.powergrid.data.recipes;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.world.item.Items;
 import org.patryk3211.powergrid.collections.ModdedBlocks;
 import org.patryk3211.powergrid.collections.ModdedItems;
+import org.patryk3211.powergrid.electricity.light.string.StringLightCordRecipe;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static org.patryk3211.powergrid.data.recipes.RecipeTags.*;
 
 @SuppressWarnings("unused")
 public class CraftingRecipes extends StandardRecipeProvider {
     GeneratedRecipe
+
+    LIGHT_CORD_PATTERN = createSpecial(StringLightCordRecipe::new, "crafting", "light_cord_patterning"),
 
     WIRE_CONNECTOR = create(ModdedBlocks.WIRE_CONNECTOR)
             .unlockedBy(AllItems.ANDESITE_ALLOY::get)
@@ -275,18 +280,19 @@ public class CraftingRecipes extends StandardRecipeProvider {
                     .requires(resistiveCoil())
                     .requires(coal())
                     .requires(redstone())),
-            CIRCUIT_DESIGN_TABLE = create(ModdedBlocks.CIRCUIT_DESIGN_TABLE::get)
-                    .unlockedBy(() -> ModdedBlocks.CONDUCTIVE_CASING)
-                    .viaShaped(b -> b
-                            .pattern("ES")
-                            .pattern("OP")
-                            .pattern(" C")
-                            .define('E', AllItems.ELECTRON_TUBE)
-                            .define('S', AllItems.EMPTY_SCHEMATIC)
-                            .define('O', ModdedBlocks.SOCKET)
-                            .define('P', ModdedBlocks.COPPER_PLATING)
-                            .define('C', ModdedBlocks.CONDUCTIVE_CASING)
-                    ),
+
+    CIRCUIT_DESIGN_TABLE = create(ModdedBlocks.CIRCUIT_DESIGN_TABLE::get)
+            .unlockedBy(() -> ModdedBlocks.CONDUCTIVE_CASING)
+            .viaShaped(b -> b
+                    .pattern("ES")
+                    .pattern("OP")
+                    .pattern(" C")
+                    .define('E', AllItems.ELECTRON_TUBE)
+                    .define('S', AllItems.EMPTY_SCHEMATIC)
+                    .define('O', ModdedBlocks.SOCKET)
+                    .define('P', ModdedBlocks.COPPER_PLATING)
+                    .define('C', ModdedBlocks.CONDUCTIVE_CASING)
+            ),
 
     GENERATOR_HOUSING = create(ModdedBlocks.GENERATOR_HOUSING)
             .unlockedBy(() -> ModdedBlocks.CONDUCTIVE_CASING)
@@ -634,8 +640,8 @@ public class CraftingRecipes extends StandardRecipeProvider {
 
             ;
 
-    public CraftingRecipes(PackOutput output) {
-        super(output);
+    public CraftingRecipes(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {
+        super(output, registries);
     }
 
     @Override

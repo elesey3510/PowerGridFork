@@ -15,33 +15,21 @@
  */
 package org.patryk3211.powergrid.electricity.particles;
 
-import com.mojang.brigadier.StringReader;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.simibubi.create.foundation.particle.ICustomParticleData;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.core.particles.DustParticleOptionsBase;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.phys.Vec3;
 import org.patryk3211.powergrid.collections.ModdedParticles;
 
 public class ZapParticleData implements ParticleOptions, ICustomParticleData<ZapParticleData> {
-    public static final Deserializer<ZapParticleData> FACTORY = new Deserializer<>() {
-        @Override
-        public ZapParticleData fromCommand(ParticleType<ZapParticleData> type, StringReader reader) throws CommandSyntaxException {
-            var vec = DustParticleOptionsBase.readVector3f(reader);
-            return new ZapParticleData(vec.x, vec.y, vec.z, true, 1, -1, 1);
-        }
-
-        @Override
-        public ZapParticleData fromNetwork(ParticleType<ZapParticleData> type, FriendlyByteBuf buf) {
-            return new ZapParticleData(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readBoolean(), buf.readInt(), buf.readInt(), buf.readFloat());
-        }
-    };
     private static final Codec<ZapParticleData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.DOUBLE.fieldOf("x").forGetter(data -> data.getEnd().x),
             Codec.DOUBLE.fieldOf("y").forGetter(data -> data.getEnd().y),
@@ -51,6 +39,9 @@ public class ZapParticleData implements ParticleOptions, ICustomParticleData<Zap
             Codec.INT.fieldOf("segments").forGetter(ZapParticleData::getSegmentCount),
             Codec.FLOAT.fieldOf("factor").forGetter(ZapParticleData::getFactor)
     ).apply(instance, ZapParticleData::new));
+
+    public static final MapCodec<ZapParticleData> MAP_CODEC = CODEC.fieldOf("zap");
+    public static final StreamCodec<ByteBuf, ZapParticleData> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
     private final Vec3 end;
     private final boolean anchor;
@@ -125,16 +116,6 @@ public class ZapParticleData implements ParticleOptions, ICustomParticleData<Zap
     }
 
     @Override
-    public Deserializer<ZapParticleData> getDeserializer() {
-        return FACTORY;
-    }
-
-    @Override
-    public Codec<ZapParticleData> getCodec(ParticleType<ZapParticleData> type) {
-        return CODEC;
-    }
-
-    @Override
     public ParticleProvider<ZapParticleData> getFactory() {
         return ZapParticle::new;
     }
@@ -145,22 +126,12 @@ public class ZapParticleData implements ParticleOptions, ICustomParticleData<Zap
     }
 
     @Override
-    public void writeToNetwork(FriendlyByteBuf buf) {
-        buf.writeDouble(end.x);
-        buf.writeDouble(end.y);
-        buf.writeDouble(end.z);
-        buf.writeBoolean(anchor);
-        buf.writeInt(life);
-        buf.writeInt(segmentCount);
-        buf.writeFloat(factor);
+    public MapCodec<ZapParticleData> getCodec(ParticleType<ZapParticleData> type) {
+        return MAP_CODEC;
     }
 
     @Override
-    public String writeToString() {
-        if(end == null) {
-            return BuiltInRegistries.PARTICLE_TYPE.getKey(getType()).toString();
-        } else {
-            return String.format("%s (%f, %f, %f)", BuiltInRegistries.PARTICLE_TYPE.getKey(getType()), end.x, end.y, end.z);
-        }
+    public StreamCodec<? super RegistryFriendlyByteBuf, ZapParticleData> getStreamCodec() {
+        return STREAM_CODEC;
     }
 }

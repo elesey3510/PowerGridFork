@@ -17,10 +17,12 @@ package org.patryk3211.powergrid.kinetics.generator.rotor;
 
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
+import dev.ryanhcode.sable.companion.SableCompanion;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.damagesource.DamageSource;
@@ -160,8 +162,8 @@ public class RotorBehaviour extends SegmentedBehaviour<RotorBehaviour> implement
     }
 
     @Override
-    public void read(CompoundTag compound, boolean clientPacket) {
-        super.read(compound, clientPacket);
+    public void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(compound, registries, clientPacket);
         if(compound.contains("AngularVelocity")) {
             angularVelocity = compound.getFloat("AngularVelocity");
             if(Float.isNaN(angularVelocity))
@@ -170,8 +172,8 @@ public class RotorBehaviour extends SegmentedBehaviour<RotorBehaviour> implement
     }
 
     @Override
-    public void write(CompoundTag compound, boolean clientPacket) {
-        super.write(compound, clientPacket);
+    public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(compound, registries, clientPacket);
         compound.putFloat("AngularVelocity", angularVelocity);
     }
 
@@ -365,7 +367,11 @@ public class RotorBehaviour extends SegmentedBehaviour<RotorBehaviour> implement
         var axis = state.getValue(AXIS);
         for(var e : entities) {
             var pos = getPos();
+            var sublevel = SableCompanion.INSTANCE.getContaining(level, pos);
             var ePos = e.position();
+            if(sublevel != null) {
+                ePos = sublevel.logicalPose().transformPositionInverse(ePos);
+            }
             var direction = new Vec3(
                     axis == Direction.Axis.X ? 0 : ePos.x - pos.getX() - 0.5,
                     axis == Direction.Axis.Y ? 0 : ePos.y - pos.getY() - 0.5,
@@ -376,6 +382,9 @@ public class RotorBehaviour extends SegmentedBehaviour<RotorBehaviour> implement
                     axis == Direction.Axis.Y ? 1 : 0,
                     axis == Direction.Axis.Z ? 1 : 0
             ));
+            if(sublevel != null) {
+                heading = sublevel.logicalPose().transformNormal(heading);
+            }
             var velocity = heading.scale(-getAngularVelocityRadians() * 0.025);
             e.addDeltaMovement(velocity);
             float d = (float) (velocity.length() / 0.16);

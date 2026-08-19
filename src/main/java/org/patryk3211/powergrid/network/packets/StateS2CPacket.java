@@ -16,11 +16,11 @@
 package org.patryk3211.powergrid.network.packets;
 
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import dev.architectury.networking.NetworkManager;
 import io.netty.buffer.AbstractByteBufAllocator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.level.Level;
@@ -30,17 +30,15 @@ import org.patryk3211.powergrid.collections.ModdedConfigs;
 import org.patryk3211.powergrid.electricity.base.ElectricBehaviour;
 import org.patryk3211.powergrid.electricity.base.ISynchronizedElement;
 import org.patryk3211.powergrid.electricity.wire.JunctionWireEndpoint;
-import org.patryk3211.powergrid.network.SimplePacket;
+import org.patryk3211.powergrid.network.S2CPacket;
 import org.patryk3211.powergrid.utility.ClientSideAccess;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Supplier;
 
-public class StateS2CPacket implements SimplePacket {
+public class StateS2CPacket implements S2CPacket {
     private static final PooledByteBufAllocator POOL = new PooledByteBufAllocator(true, 0, 4, PooledByteBufAllocator.defaultPageSize(), 7);
-
     private final List<Key> keys = new ArrayList<>();
     private final boolean useDoubles;
     private final ByteBuf data;
@@ -75,8 +73,19 @@ public class StateS2CPacket implements SimplePacket {
         buf.readBytes(data, size);
     }
 
+    public void begin(ISynchronizedElement pos) {
+        keys.add(pos.getKey());
+        lengthPosition = wrapper().writerIndex();
+        wrapper().writeInt(0);
+    }
+
+    public void end() {
+        var entryLength = wrapper().writerIndex() - lengthPosition - 4;
+        wrapper.setInt(lengthPosition, entryLength);
+    }
+
     @Override
-    public void encode(FriendlyByteBuf buf) {
+    public void write(FriendlyByteBuf buf) {
         buf.writeBoolean(useDoubles);
         buf.writeInt(keys.size());
         for(var key : keys) {
@@ -90,17 +99,16 @@ public class StateS2CPacket implements SimplePacket {
     }
 
     @Override
-    public void handle(Supplier<NetworkManager.PacketContext> context) {
-        context.get().queue(() -> {
-            var level = ClientSideAccess.world();
-            for(var key : keys) {
-                var entryLength = wrapper().readInt();
-                var element = key.resolve(level);
-                if(element == null) {
-                    // Skip entry
-                    wrapper().skipBytes(entryLength);
-                } else {
-                    try {
+    public void handle(Minecraft mc) {
+        var level = ClientSideAccess.world();
+        for(var key : keys) {
+            var entryLength = wrapper().readInt();
+            var element = key.resolve(level);
+            if(element == null) {
+                // Skip entry
+                wrapper().skipBytes(entryLength);
+            } else {
+                try {
                     var start = wrapper().readerIndex();
                     element.readFromSync(wrapper(), useDoubles);
                     var end = wrapper().readerIndex();
@@ -116,24 +124,12 @@ public class StateS2CPacket implements SimplePacket {
                 } catch(IndexOutOfBoundsException e) {
                     if(ModdedConfigs.logsEnabled())
                         PowerGrid.LOGGER.warn("Buffer read overrun (Out of bounds exception thrown)");
-                    }
                 }
             }
-            // Data is not needed after it has been handled so it's released.
-            wrapper = null;
-            data.release();
-        });
-    }
-
-    public void begin(ISynchronizedElement pos) {
-        keys.add(pos.getKey());
-        lengthPosition = wrapper().writerIndex();
-        wrapper().writeInt(0);
-    }
-
-    public void end() {
-        var entryLength = wrapper().writerIndex() - lengthPosition - 4;
-        wrapper.setInt(lengthPosition, entryLength);
+        }
+        // Data is not needed after it has been handled so it's released.
+        wrapper = null;
+        data.release();
     }
 
     public interface Key {

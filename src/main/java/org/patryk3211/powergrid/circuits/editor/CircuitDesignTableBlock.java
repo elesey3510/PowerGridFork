@@ -22,6 +22,7 @@ import net.createmod.catnip.math.VoxelShaper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -92,19 +93,21 @@ public class CircuitDesignTableBlock extends HorizontalElectricBlock implements 
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (AllItems.WRENCH.isIn(player.getItemInHand(hand)))
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+        if (AllItems.WRENCH.isIn(player.getItemInHand(InteractionHand.MAIN_HAND)))
             return InteractionResult.PASS;
-        if(world.isClientSide)
+        if(level.isClientSide)
             return InteractionResult.SUCCESS;
-        withBlockEntityDo(world, pos, be -> {
+        withBlockEntityDo(level, pos, be -> {
             if(!player.isCreative() && !be.isPowered()) {
                 player.displayClientMessage(Lang.translate("message.circuit_table.no_power")
                         .style(ChatFormatting.RED)
                         .component(), true);
                 return;
             }
-            MenuRegistry.openExtendedMenu((ServerPlayer) player, be, be::sendToMenu);
+            MenuRegistry.openExtendedMenu((ServerPlayer) player, be, buf -> {
+                be.sendToMenu(new RegistryFriendlyByteBuf(buf, level.registryAccess()));
+            });
         });
         return InteractionResult.SUCCESS;
     }

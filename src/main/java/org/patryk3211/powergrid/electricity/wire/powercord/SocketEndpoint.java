@@ -81,7 +81,9 @@ public class SocketEndpoint implements ICordEndpoint {
 
     @Override
     public void read(CompoundTag nbt) {
-        pos = NbtUtils.readBlockPos(nbt.getCompound("Pos"));
+        var optionalPos = NbtUtils.readBlockPos(nbt,"Pos");
+        if (optionalPos.isPresent())
+            pos = NbtUtils.readBlockPos(nbt,"Pos").get();
     }
 
     @Override
@@ -177,5 +179,14 @@ public class SocketEndpoint implements ICordEndpoint {
             return Objects.equals(pos, other.pos);
         }
         return false;
+    }
+
+    @Override
+    public MoveAction shouldMove(Level level, Iterable<BlockPos> allBlocks) {
+        for(var block : allBlocks) {
+            if(block.equals(pos))
+                return MoveAction.MOVE;
+        }
+        return MoveAction.STAY;
     }
 }

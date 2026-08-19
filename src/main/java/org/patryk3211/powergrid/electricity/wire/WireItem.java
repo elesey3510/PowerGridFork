@@ -42,9 +42,11 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import org.patryk3211.powergrid.AbstractPowerGridRegistrate;
 import org.patryk3211.powergrid.PowerGrid;
 import org.patryk3211.powergrid.collections.ModdedKeys;
+import org.patryk3211.powergrid.collections.ModdedDataComponents;
 import org.patryk3211.powergrid.electricity.base.IElectric;
 import org.patryk3211.powergrid.electricity.base.ITerminalPlacement;
 import org.patryk3211.powergrid.electricity.info.*;
@@ -77,6 +79,12 @@ public class WireItem extends Item implements IWire {
     }
 
     public static InteractionResultHolder<BlockWireEntity> connect(Level world, ItemStack stack, Player player, IWireEndpoint endpoint1, IWireEndpoint endpoint2) {
+        if(endpoint1.getSubLevel(world) != endpoint2.getSubLevel(world)) {
+            // Abort, block wires must be in the same sublevel.
+            if(player != null)
+                player.displayClientMessage(Lang.translate("message.connection_failed").style(ChatFormatting.RED).component(), true);
+            return InteractionResultHolder.fail(null);
+        }
         var entry = WireRegistry.forItem(world, stack.getItem());
         if(endpoint1.type() == WireEndpointType.BLOCK_WIRE && endpoint2.type() == WireEndpointType.BLOCK_WIRE)
             return mergeWires(world, stack, player, (BlockWireEntityEndpoint) endpoint1, (BlockWireEntityEndpoint) endpoint2);
@@ -274,19 +282,15 @@ public class WireItem extends Item implements IWire {
 
     @Override
     public boolean isFoil(ItemStack stack) {
-        return super.isFoil(stack) || (stack.hasTag() && stack.getTag().contains("Connection"));
+        return super.isFoil(stack) || stack.has(ModdedDataComponents.CONNECTION_DATA.get());
     }
 
     public static CompoundEventResult<ItemStack> use(Player user, InteractionHand hand) {
         var stack = user.getItemInHand(hand);
         if(!IWire.isWire(user.level(), stack.getItem()))
             return CompoundEventResult.pass();
-        if(stack.hasTag() && user.isShiftKeyDown()) {
-            stack.removeTagKey("Connection");
-            stack.removeTagKey("Turns");
-            stack.removeTagKey("Terminal");
-            stack.removeTagKey("Initiator");
-            stack.removeTagKey("Half");
+        if(stack.has(ModdedDataComponents.CONNECTION_DATA.get()) && user.isShiftKeyDown()) {
+            stack.remove(ModdedDataComponents.CONNECTION_DATA.get());
             if(!user.level().isClientSide)
                 user.displayClientMessage(Lang.translate("message.connection_reset").style(ChatFormatting.GRAY).component(), true);
             return CompoundEventResult.interruptTrue(stack);
@@ -310,9 +314,11 @@ public class WireItem extends Item implements IWire {
             return EventResult.pass();
         if(IWire.isCord(player.level(), stack.getItem()))
             return CordItem.useOn(player, hand, blockPos, direction);
-        var hit = player.pick(PlayerUtilities.getReachDistance(player) + 1.0f, 1.0f, false);
+        var hit = player.pick(PlayerUtilities.getReachDistance(player) + 1.0f, 0.0f, false);
         if(!(hit instanceof BlockHitResult blockHit))
             return EventResult.pass();
+        if(hit.getType() != HitResult.Type.BLOCK || !blockHit.getBlockPos().equals(blockPos))
+            return EventResult.interruptFalse();
 
         var level = player.level();
         var electric = IElectric.getAt(level, blockPos);
@@ -323,10 +329,10 @@ public class WireItem extends Item implements IWire {
             if(result != InteractionResult.PASS)
                 return EventResult.interrupt(result.consumesAction());
         }
-        var tag = stack.getTagElement("Connection");
-        if(tag != null) {
+        var connection = stack.get(ModdedDataComponents.CONNECTION_DATA.get());
+        if(connection != null) {
             // This will result in the connection being a block wire (instead of a hanging wire)
-            var endpoint = WireEndpointType.deserialize(tag);
+            var endpoint = connection.endpoint();
             if(endpoint == null)
                 return EventResult.interruptFalse();
 
@@ -336,7 +342,7 @@ public class WireItem extends Item implements IWire {
             if(result.getResult().consumesAction()) {
                 var entity = result.getObject();
                 if(entity != null) {
-                    stack.getOrCreateTag().put("Connection", new BlockWireEntityEndpoint(entity, true).serialize());
+                    stack.set(ModdedDataComponents.CONNECTION_DATA.get(), WireConnection.of(new BlockWireEntityEndpoint(entity, true)));
                     if(player != null)
                         player.setItemInHand(hand, stack);
                 }
@@ -358,7 +364,7 @@ public class WireItem extends Item implements IWire {
     };
 
     @Environment(EnvType.CLIENT)
-    public static void tooltip(ItemStack stack, List<Component> components, TooltipFlag tooltipFlag) {
+    public static void tooltip(ItemStack stack, List<Component> components, TooltipContext tooltipContext, TooltipFlag tooltipFlag) {
         var entry = WireRegistry.forItem(stack.getItem());
         if(entry == null)
             return;

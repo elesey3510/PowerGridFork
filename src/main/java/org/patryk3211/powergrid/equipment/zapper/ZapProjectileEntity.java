@@ -15,10 +15,12 @@
  */
 package org.patryk3211.powergrid.equipment.zapper;
 
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
@@ -27,11 +29,12 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.*;
+import org.jetbrains.annotations.Nullable;
 import org.patryk3211.powergrid.collections.ModdedDamageTypes;
 import org.patryk3211.powergrid.collections.ModdedEntities;
 import org.patryk3211.powergrid.collections.ModdedPackets;
@@ -40,10 +43,10 @@ import org.patryk3211.powergrid.network.packets.ZapProjectileS2CPacket;
 
 import java.util.ArrayList;
 
-public class ZapProjectileEntity extends Projectile {
+public class ZapProjectileEntity extends AbstractHurtingProjectile {
     private float power;
 
-    public ZapProjectileEntity(EntityType<? extends Projectile> type, Level world) {
+    public ZapProjectileEntity(EntityType<? extends AbstractHurtingProjectile> type, Level world) {
         super(type, world);
     }
 
@@ -59,7 +62,7 @@ public class ZapProjectileEntity extends Projectile {
     }
 
     @Override
-    protected void defineSynchedData() {
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
 
     }
 
@@ -69,6 +72,16 @@ public class ZapProjectileEntity extends Projectile {
 
     public static void playLaunchSound(Level world, Vec3 location, float pitch) {
         ModdedSoundEvents.ELECTROZAPPER_SHOOT.playAt(world, location, 1, pitch, true);
+    }
+
+    @Override
+    protected boolean shouldBurn() {
+        return false;
+    }
+
+    @Override
+    protected @Nullable ParticleOptions getTrailParticle() {
+        return null;
     }
 
     @Override
@@ -167,8 +180,8 @@ public class ZapProjectileEntity extends Projectile {
 //        }
 
         if(onServer && owner instanceof LivingEntity livingOwner) {
-            EnchantmentHelper.doPostHurtEffects(livingTarget, livingOwner);
-            EnchantmentHelper.doPostDamageEffects(livingOwner, livingTarget);
+
+            EnchantmentHelper.doPostAttackEffects(world.getServer().getLevel(livingTarget.level().dimension()), livingTarget, livingOwner.damageSources().playerAttack((Player) livingOwner));
         }
 
         if(livingTarget != owner && livingTarget instanceof Player && owner instanceof ServerPlayer ownerPlayer && !isSilent()) {
@@ -188,13 +201,13 @@ public class ZapProjectileEntity extends Projectile {
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag compound) {
+    public void addAdditionalSaveData(CompoundTag compound) {
         super.addAdditionalSaveData(compound);
         compound.putFloat("Power", power);
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag compound) {
+    public void readAdditionalSaveData(CompoundTag compound) {
         super.readAdditionalSaveData(compound);
         power = compound.getFloat("Power");
     }

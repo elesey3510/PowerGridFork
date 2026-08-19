@@ -15,7 +15,10 @@
  */
 package org.patryk3211.powergrid.electricity.light.fixture;
 
+import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.patryk3211.powergrid.electricity.sim.SwitchedWire;
@@ -54,5 +57,22 @@ public class LightFixtureBlockEntity extends AbstractLightFixtureBlockEntity {
     @Override
     public int getPowerLevel() {
         return getBlockState().getValue(LightFixtureBlock.POWER);
+    }
+
+    @Override
+    public ItemRequirement getRequiredItems(BlockState state) {
+        if(bulbState != null)
+            return new ItemRequirement(ItemRequirement.ItemUseType.CONSUME, bulbState.getItem());
+        return ItemRequirement.NONE;
+    }
+
+    public ItemInteractionResult setColor(DyeColor color) {
+        if(bulbState == null)
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        if(bulbState.setColor(color)) {
+            notifyUpdate();
+            return ItemInteractionResult.SUCCESS;
+        }
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 }

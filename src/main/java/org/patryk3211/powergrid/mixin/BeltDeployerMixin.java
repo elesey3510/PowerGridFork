@@ -20,8 +20,10 @@ import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackH
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
 import com.simibubi.create.content.kinetics.deployer.BeltDeployerCallbacks;
 import com.simibubi.create.content.kinetics.deployer.DeployerBlockEntity;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.crafting.Recipe;
 import org.patryk3211.powergrid.collections.ModdedAdvancements;
 import org.patryk3211.powergrid.collections.ModdedTags;
@@ -50,16 +52,17 @@ public class BeltDeployerMixin {
             }
         }
         if(stack.is(ModdedTags.Item.CIRCUIT_SCHEMATIC_HOLDER.tag)) {
-            if(!stack.hasTag())
+            if(!stack.has(DataComponents.CUSTOM_DATA))
                 return;
-            var schematic = stack.getTagElement("Schematic");
+            var schematic = stack.get(DataComponents.CUSTOM_DATA).copyTag().get("Schematic");
             if(schematic == null)
                 return;
             for(var item : collect) {
                 if(!item.stack.is(ModdedTags.Item.CIRCUIT_SCHEMATIC_HOLDER.tag))
                     continue;
-                var tag = item.stack.getOrCreateTag();
+                var tag = item.stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
                 tag.put("Schematic", schematic.copy());
+                item.stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
             }
         }
     }

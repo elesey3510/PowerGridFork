@@ -15,6 +15,7 @@ import net.createmod.catnip.math.BlockFace;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.LevelAccessor;

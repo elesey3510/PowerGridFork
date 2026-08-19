@@ -16,6 +16,9 @@
 package org.patryk3211.powergrid.electricity.particles;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import dev.ryanhcode.sable.companion.ClientSubLevelAccess;
+import dev.ryanhcode.sable.companion.SableCompanion;
+import dev.ryanhcode.sable.companion.math.Pose3dc;
 import net.createmod.catnip.render.DefaultSuperRenderTypeBuffer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -24,6 +27,7 @@ import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.patryk3211.powergrid.collections.ModdedRenderLayers;
 
 import java.util.ArrayList;
@@ -39,8 +43,12 @@ public class ZapParticle extends Particle {
 
     private final List<Tuple<Vec3, Vec3>> segments = new ArrayList<>();
 
+    @Nullable
+    private final ClientSubLevelAccess sublevel;
+
     public ZapParticle(ZapParticleData data, ClientLevel world, double x, double y, double z, double velocityX, double velocityY, double velocityZ) {
         super(world, x, y, z, velocityX, velocityY, velocityZ);
+        sublevel = SableCompanion.INSTANCE.getContainingClient(new Vec3(x, y, z));
         Vec3 end = data.getEnd();
         anchorEnd = data.isAnchored();
         lifetime = data.getLife();
@@ -119,16 +127,16 @@ public class ZapParticle extends Particle {
         }
     }
 
-    public void renderSegment(VertexConsumer buffer, double x1, double y1, double z1, double x2, double y2, double z2, Vec3 cross1, Vec3 cross2) {
-        buffer.vertex((float) (x1 + cross1.x), (float) (y1 + cross1.y), (float) (z1 + cross1.z)).endVertex();
-        buffer.vertex((float) (x1 - cross1.x), (float) (y1 - cross1.y), (float) (z1 - cross1.z)).endVertex();
-        buffer.vertex((float) (x2 - cross1.x), (float) (y2 - cross1.y), (float) (z2 - cross1.z)).endVertex();
-        buffer.vertex((float) (x2 + cross1.x), (float) (y2 + cross1.y), (float) (z2 + cross1.z)).endVertex();
+    public void renderSegment(VertexConsumer buffer, double x1, double y1, double z1, double x2, double y2, double z2, Vec3 cross1, Vec3 cross2, int color) {
+        buffer.addVertex((float) (x1 + cross1.x), (float) (y1 + cross1.y), (float) (z1 + cross1.z)).setColor(color);
+        buffer.addVertex((float) (x1 - cross1.x), (float) (y1 - cross1.y), (float) (z1 - cross1.z)).setColor(color);
+        buffer.addVertex((float) (x2 - cross1.x), (float) (y2 - cross1.y), (float) (z2 - cross1.z)).setColor(color);
+        buffer.addVertex((float) (x2 + cross1.x), (float) (y2 + cross1.y), (float) (z2 + cross1.z)).setColor(color);
 
-        buffer.vertex((float) (x1 + cross2.x), (float) (y1 + cross2.y), (float) (z1 + cross2.z)).endVertex();
-        buffer.vertex((float) (x1 - cross2.x), (float) (y1 - cross2.y), (float) (z1 - cross2.z)).endVertex();
-        buffer.vertex((float) (x2 - cross2.x), (float) (y2 - cross2.y), (float) (z2 - cross2.z)).endVertex();
-        buffer.vertex((float) (x2 + cross2.x), (float) (y2 + cross2.y), (float) (z2 + cross2.z)).endVertex();
+        buffer.addVertex((float) (x1 + cross2.x), (float) (y1 + cross2.y), (float) (z1 + cross2.z)).setColor(color);
+        buffer.addVertex((float) (x1 - cross2.x), (float) (y1 - cross2.y), (float) (z1 - cross2.z)).setColor(color);
+        buffer.addVertex((float) (x2 - cross2.x), (float) (y2 - cross2.y), (float) (z2 - cross2.z)).setColor(color);
+        buffer.addVertex((float) (x2 + cross2.x), (float) (y2 + cross2.y), (float) (z2 + cross2.z)).setColor(color);
     }
 
     @Override
@@ -138,18 +146,23 @@ public class ZapParticle extends Particle {
 
         var camPos = camera.getPosition();
 
-        buffer.defaultColor((int) (rCol * 255), (int) (gCol * 255), (int) (bCol * 255), (int) (alpha * 255));
+        int argbColor = ((int) (alpha * 255) << 24) | ((int) (rCol * 255) << 16) | ((int) (gCol * 255) << 8) | (int) (bCol * 255);
 
+        Pose3dc pose = null;
+        if(sublevel != null)
+            pose = sublevel.renderPose(tickDelta);
         for(var segment : segments) {
             var a = segment.getA();
             var b = segment.getB();
+            if(pose != null) {
+                a = pose.transformPosition(a);
+                b = pose.transformPosition(b);
+            }
             renderSegment(buffer,
                     a.x - camPos.x, a.y - camPos.y, a.z - camPos.z,
                     b.x - camPos.x, b.y - camPos.y, b.z - camPos.z,
-                    cross1, cross2);
+                    cross1, cross2, argbColor);
         }
-
-        buffer.unsetDefaultColor();
 
         bufferProvider.draw();
     }

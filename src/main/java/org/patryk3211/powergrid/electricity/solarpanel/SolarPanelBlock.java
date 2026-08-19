@@ -63,6 +63,7 @@ public class SolarPanelBlock extends DirectionalElectricBlock implements IBE<Sol
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+
         ItemStack heldItem = player.getItemInHand(hand);
         IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
         if (!player.isShiftKeyDown() && player.mayBuild()) {
@@ -191,4 +192,5 @@ public class SolarPanelBlock extends DirectionalElectricBlock implements IBE<Sol
             }
         }
     }
+
 }

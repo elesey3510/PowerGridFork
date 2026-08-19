@@ -15,12 +15,14 @@
  */
 package org.patryk3211.powergrid.electricity.wire.powercord;
 
+import dev.ryanhcode.sable.api.SubLevelAssemblyHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,6 +60,18 @@ public class AutoCordEndpoint implements ICordEndpoint {
     }
 
     @Override
+    public IWireEndpoint makeOffset(BlockPos blockOffset, Vec3 offset) {
+        return new AutoCordEndpoint(pos.offset(blockOffset), terminal1, terminal2,
+                placement.add(offset.x, offset.y, offset.z), plugFacing);
+    }
+
+    @Override
+    public IWireEndpoint makeOffset(Level level, SubLevelAssemblyHelper.AssemblyTransform transform) {
+        return new AutoCordEndpoint(transform.apply(pos), terminal1, terminal2,
+                transform.apply(placement), plugFacing);
+    }
+
+    @Override
     public BlockWireEndpoint getEndpoint1() {
         return new BlockWireEndpoint(pos, terminal1);
     }
@@ -74,10 +88,10 @@ public class AutoCordEndpoint implements ICordEndpoint {
 
     @Override
     public void read(CompoundTag nbt) {
-        pos = NbtUtils.readBlockPos(nbt.getCompound("Position"));
+        pos = NbtUtils.readBlockPos(nbt, "Position").orElseThrow();
         terminal1 = nbt.getInt("Terminal1");
         terminal2 = nbt.getInt("Terminal2");
-        placement = new Vec3(nbt.getFloat("X"), nbt.getFloat("Y"), nbt.getFloat("Z"));
+        placement = new Vec3(nbt.getDouble("X"), nbt.getDouble("Y"), nbt.getDouble("Z"));
         if(nbt.contains("Plug")) {
             plugFacing = Direction.values()[nbt.getByte("Plug")];
         } else {
@@ -90,9 +104,9 @@ public class AutoCordEndpoint implements ICordEndpoint {
         nbt.put("Position", NbtUtils.writeBlockPos(pos));
         nbt.putInt("Terminal1", terminal1);
         nbt.putInt("Terminal2", terminal2);
-        nbt.putFloat("X", (float) placement.x);
-        nbt.putFloat("Y", (float) placement.y);
-        nbt.putFloat("Z", (float) placement.z);
+        nbt.putDouble("X", placement.x);
+        nbt.putDouble("Y", placement.y);
+        nbt.putDouble("Z", placement.z);
         if(plugFacing != null) {
             nbt.putByte("Plug", (byte) plugFacing.ordinal());
         }
@@ -149,5 +163,18 @@ public class AutoCordEndpoint implements ICordEndpoint {
     @Nullable
     public Direction getPlugFacing() {
         return plugFacing;
+    }
+
+    public AutoCordEndpoint rotate(Rotation rotation) {
+        return new AutoCordEndpoint(pos, terminal1, terminal2, placement, plugFacing == null ? null : rotation.rotate(plugFacing));
+    }
+
+    @Override
+    public MoveAction shouldMove(Level level, Iterable<BlockPos> allBlocks) {
+        for(var block : allBlocks) {
+            if(block.equals(pos))
+                return MoveAction.MOVE;
+        }
+        return MoveAction.STAY;
     }
 }

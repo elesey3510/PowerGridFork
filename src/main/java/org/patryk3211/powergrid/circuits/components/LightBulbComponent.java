@@ -89,23 +89,23 @@ public class LightBulbComponent extends OrientableComponent implements IRendered
             bulbModel = ModdedPartialModels.LIGHT_BULB_BULB;
         }
         
-        var color = placed.get(COLOR).getTextureDiffuseColors();
+        var color = placed.get(COLOR).getTextureDiffuseColor();
 
-        var red = color[0];
-        var green = color[1];
-        var blue = color[2];
+        var red = (color >> 16) & 0xFF;
+        var green = (color >> 8) & 0xFF;
+        var blue = color & 0xFF;
 
         // Render the bulb here to avoid adding all circuit board quads to cutout layer.
         var bulb = CachedBuffers.partial(bulbModel, be.getBlockState());
-        bulb.color((int) (red * 255), (int) (green * 255), (int) (blue * 255), 255);
+        bulb.color(red, green, blue, 255);
         bulb.light(light).renderInto(ms, bufferSource.getBuffer(RenderType.cutoutMipped()));
         
         int a = 0, r = 0, g = 0, b = 0;
         if(placed.customData instanceof FloatPair temps) {
             a = (int) (temps.lerped(partialTicks) * 128);
-            r = (int) (red * temps.lerped(partialTicks) * 128);
-            g = (int) (green * temps.lerped(partialTicks) * 128);
-            b = (int) (blue * temps.lerped(partialTicks) * 128);
+            r = (int) (red * temps.lerped(partialTicks) * 128 / 256);
+            g = (int) (green * temps.lerped(partialTicks) * 128 / 256);
+            b = (int) (blue * temps.lerped(partialTicks) * 128 / 256);
         }
         var center = 1.5f / 16f;
         var orientation = placed.get(ORIENTATION);

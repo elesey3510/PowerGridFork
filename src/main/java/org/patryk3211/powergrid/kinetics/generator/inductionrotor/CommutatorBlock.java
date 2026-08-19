@@ -46,9 +46,6 @@ import org.patryk3211.powergrid.electricity.base.terminals.BlockStateTerminalCol
 import org.patryk3211.powergrid.kinetics.generator.rotor.AbstractRotorBlock;
 import org.patryk3211.powergrid.utility.Directions;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
-@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class CommutatorBlock extends AbstractRotorBlock implements IBE<CommutatorBlockEntity>, ICommutator {
     public static final DirectionProperty HORIZONTAL_FACING = BlockStateProperties.HORIZONTAL_FACING;

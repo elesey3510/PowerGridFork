@@ -15,6 +15,9 @@
  */
 package org.patryk3211.powergrid.electricity.wire;
 
+import dev.ryanhcode.sable.api.SubLevelAssemblyHelper;
+import dev.ryanhcode.sable.companion.SableCompanion;
+import dev.ryanhcode.sable.companion.SubLevelAccess;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
@@ -57,11 +60,39 @@ public interface IWireEndpoint {
         throw new IllegalStateException("Cannot remove a wire entity");
     }
 
+    default void moveWireEntity(BaseWireEntity entity) {
+        removeWireEntity(entity);
+    }
+
     default CompoundTag serialize() {
         return type().serialize(this);
     }
 
     default IWireEndpoint makeOffset(BlockPos offset) {
         return null;
+    }
+
+    default IWireEndpoint makeOffset(BlockPos blockOffset, Vec3 offset) {
+        return makeOffset(blockOffset);
+    }
+
+    default IWireEndpoint makeOffset(Level level, SubLevelAssemblyHelper.AssemblyTransform transform) {
+        var pos = getExactPosition(level);
+        var blockPos = BlockPos.containing(pos);
+        return makeOffset(transform.apply(blockPos).subtract(blockPos), transform.apply(pos).subtract(pos));
+    }
+
+    default SubLevelAccess getSubLevel(Level world) {
+        return SableCompanion.INSTANCE.getContaining(world, getExactPosition(world));
+    }
+
+    default MoveAction shouldMove(Level level, Iterable<BlockPos> allBlocks) {
+        return MoveAction.BREAK;
+    }
+
+    enum MoveAction {
+        MOVE,
+        STAY,
+        BREAK
     }
 }

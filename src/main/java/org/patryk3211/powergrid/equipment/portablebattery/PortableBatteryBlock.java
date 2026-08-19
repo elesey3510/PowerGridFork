@@ -22,11 +22,14 @@ import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.foundation.block.IBE;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -34,8 +37,8 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -49,6 +52,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.patryk3211.powergrid.collections.ModdedBlockEntities;
 import org.patryk3211.powergrid.collections.ModdedConfigs;
+import org.patryk3211.powergrid.collections.ModdedDataComponents;
 import org.patryk3211.powergrid.electricity.base.HorizontalElectricBlock;
 import org.patryk3211.powergrid.electricity.base.IDecoratedTerminal;
 import org.patryk3211.powergrid.electricity.base.ITerminalPlacement;
@@ -82,6 +86,11 @@ public class PortableBatteryBlock extends HorizontalElectricBlock implements IBE
                 .build());
     }
 
+    @Override
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return InteractionResult.PASS;
+    }
+
     public int capacity() {
         return ModdedConfigs.server().equipment.portableBatteryBaseCapacity.get();
     }
@@ -98,49 +107,49 @@ public class PortableBatteryBlock extends HorizontalElectricBlock implements IBE
 
     @Override
     public List<ItemStack> getDrops(BlockState pState, LootParams.Builder pBuilder) {
-        List<ItemStack> stacks = super.getDrops(pState, pBuilder);
+        List<ItemStack> lootDrops = super.getDrops(pState, pBuilder);
+
         BlockEntity blockEntity = pBuilder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
-        if(blockEntity instanceof PortableBatteryBlockEntity be) {
-            CompoundTag vanillaTag = be.getVanillaTag();
-            return vanillaTag == null ? stacks : stacks.stream().map((stack) -> {
-                if (!(stack.getItem() instanceof PortableBatteryItem)) {
-                    return stack;
-                } else {
-                    ItemStack modifiedStack = new ItemStack(stack.getItem(), stack.getCount());
-                    var charge = be.getCharge();
-                    var tag = vanillaTag.copy();
-                    tag.putInt("Charge", charge);
-                    modifiedStack.setTag(tag);
-                    return modifiedStack;
-                }
-            }).toList();
-        } else {
-            return stacks;
-        }
+        if (!(blockEntity instanceof PortableBatteryBlockEntity be))
+            return lootDrops;
+
+        DataComponentPatch components = be.getDataPatch()
+                .forget(c -> c.equals(ModdedDataComponents.PORTABLE_BATTERY_CHARGE.get()));
+        if (components.isEmpty())
+            return lootDrops;
+
+        return lootDrops.stream()
+                .peek(stack -> {
+                    if (stack.getItem() instanceof PortableBatteryItem) {
+                        stack.set(ModdedDataComponents.PORTABLE_BATTERY_CHARGE.get(), be.getCharge());
+                        stack.applyComponents(components);
+                    }
+                })
+                .toList();
     }
 
     /**
-     * @see com.simibubi.create.content.equipment.armor.BacktankBlock#use(BlockState, Level, BlockPos, Player, InteractionHand, BlockHitResult)
+     * @see com.simibubi.create.content.equipment.armor.BacktankBlock#useItemOn(ItemStack, BlockState, Level, BlockPos, Player, InteractionHand, BlockHitResult)
      */
     @Override
-    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+    public ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
         if(player == null)
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         if(PlayerUtilities.isFake(player))
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         if(player.isShiftKeyDown())
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         var heldItem = player.getMainHandItem().getItem();
         if(heldItem instanceof BlockItem || IWire.isWire(world, heldItem))
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         if(!player.getItemBySlot(EquipmentSlot.CHEST).isEmpty())
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         if(!world.isClientSide) {
             world.playSound(null, pos, SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, .75f, 1);
             player.setItemSlot(EquipmentSlot.CHEST, getCloneItemStack(world, pos, state));
             world.destroyBlock(pos, false);
         }
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
     }
 
     @Override
@@ -151,15 +160,15 @@ public class PortableBatteryBlock extends HorizontalElectricBlock implements IBE
         if(stack == null)
             return;
         withBlockEntityDo(worldIn, pos, be -> {
-            int level = EnchantmentHelper.getItemEnchantmentLevel(AllEnchantments.CAPACITY.get(), stack);
+            int level = EnchantmentHelper.getItemEnchantmentLevel(
+                    worldIn.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(AllEnchantments.CAPACITY),
+                    stack
+            );
             be.setCapacityEnchantLevel(level);
             be.setCharge(BatteryUtils.getCurrentCharge(stack));
-
-            var vanillaTag = stack.getOrCreateTag();
-            if(stack.hasCustomHoverName())
+            if(stack.has(DataComponents.CUSTOM_NAME))
                 be.setName(stack.getHoverName());
-
-            be.setTags(vanillaTag);
+            be.setDataPatch(stack.getComponentsPatch());
             be.setChanged();
         });
     }
@@ -175,25 +184,25 @@ public class PortableBatteryBlock extends HorizontalElectricBlock implements IBE
     }
 
     @Override
-    public boolean isPathfindable(BlockState state, BlockGetter world, BlockPos pos, PathComputationType type) {
+    protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
         return false;
     }
 
     @Override
-    public ItemStack getCloneItemStack(BlockGetter world, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(LevelReader world, BlockPos pos, BlockState state) {
         var item = asItem();
         if(item instanceof BacktankItem.BacktankBlockItem placeable)
             item = placeable.getActualItem();
 
         var be = getBlockEntityOptional(world, pos);
-        var vanillaTag = be.map(PortableBatteryBlockEntity::getVanillaTag)
-                .orElse(new CompoundTag());
+        var components = be.map(PortableBatteryBlockEntity::getDataPatch)
+                .orElse(DataComponentPatch.EMPTY);
         var charge = be.map(PortableBatteryBlockEntity::getCharge)
                 .orElse(0);
 
         ItemStack stack = new ItemStack(item, 1);
-        vanillaTag.putInt("Charge", charge);
-        stack.setTag(vanillaTag);
+        stack.applyComponents(components);
+        stack.set(ModdedDataComponents.PORTABLE_BATTERY_CHARGE.get(), charge);
         return stack;
     }
 

@@ -33,9 +33,6 @@ import org.patryk3211.powergrid.electricity.base.*;
 import org.patryk3211.powergrid.electricity.base.terminals.BlockStateTerminalCollection;
 import org.patryk3211.powergrid.electricity.wire.powercord.SocketEndpoint;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
-@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class SocketBlock extends Rotation4ElectricBlock implements IBE<SocketBlockEntity>, ISocketElectric {
     private final TerminalBoundingBox[] TERMINALS_DOWN = new TerminalBoundingBox[] {

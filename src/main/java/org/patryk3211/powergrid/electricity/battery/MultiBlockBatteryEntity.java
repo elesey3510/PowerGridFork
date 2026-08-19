@@ -18,6 +18,7 @@ package org.patryk3211.powergrid.electricity.battery;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.level.block.Blocks;
@@ -230,19 +231,14 @@ public class MultiBlockBatteryEntity extends BatteryBlockEntity implements IMult
     }
 
     @Override
-    protected void read(CompoundTag compound, boolean clientPacket) {
+    protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
         BlockPos controllerBefore = controller;
         int prevSize = width;
         int prevHeight = height;
 
         updateConnectivity = compound.contains("Uninitialized");
-        controller = null;
-        lastKnownPos = null;
-
-        if (compound.contains("LastKnownPos"))
-            lastKnownPos = NbtUtils.readBlockPos(compound.getCompound("LastKnownPos"));
-        if (compound.contains("Controller"))
-            controller = NbtUtils.readBlockPos(compound.getCompound("Controller"));
+        lastKnownPos = NbtUtils.readBlockPos(compound, "LastKnownPos").orElse(null);
+        controller = NbtUtils.readBlockPos(compound, "Controller").orElse(null);
 
         if (isController()) {
             width = compound.getInt("Size");
@@ -251,7 +247,7 @@ public class MultiBlockBatteryEntity extends BatteryBlockEntity implements IMult
         var blocks = width * width * height;
         capacity = spec.getMaxCharge() * blocks;
 
-        super.read(compound, clientPacket);
+        super.read(compound, registries, clientPacket);
 
         boolean changeOfController = controllerBefore == null ? controller != null : !controllerBefore.equals(controller);
         if(level != null && (changeOfController || prevSize != width || prevHeight != height)) {
@@ -266,7 +262,7 @@ public class MultiBlockBatteryEntity extends BatteryBlockEntity implements IMult
     }
 
     @Override
-    public void write(CompoundTag compound, boolean clientPacket) {
+    public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
         if (updateConnectivity)
             compound.putBoolean("Uninitialized", true);
         if (lastKnownPos != null)
@@ -277,7 +273,7 @@ public class MultiBlockBatteryEntity extends BatteryBlockEntity implements IMult
             compound.putInt("Size", width);
             compound.putInt("Height", height);
         }
-        super.write(compound, clientPacket);
+        super.write(compound, registries, clientPacket);
 
         if(clientPacket) {
             if(rewire) {

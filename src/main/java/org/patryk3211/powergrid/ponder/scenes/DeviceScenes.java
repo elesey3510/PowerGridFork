@@ -27,11 +27,14 @@ import net.createmod.ponder.foundation.PonderScene;
 import net.createmod.ponder.foundation.instruction.TickingInstruction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -547,7 +550,7 @@ public class DeviceScenes {
                 .placeNearTarget()
                 .text("The Input items can be dropped or placed on a Depot under the Electromagnet");
         scene.idle(50);
-        var alloy = new ItemStack(AllItems.ANDESITE_ALLOY);
+        var alloy = new ItemStack(AllItems.ANDESITE_ALLOY.asItem());
         scene.world().createItemOnBeltLike(depotPos, Direction.NORTH, alloy);
         var depotCenter = util.vector().centerOf(depotPos.south());
         scene.overlay().showControls(depotCenter, Pointing.UP, 30).withItem(alloy);
@@ -1076,7 +1079,9 @@ public class DeviceScenes {
         scene.idle(60);
 
         var card = ModdedItems.PUNCH_CARD.asStack();
-        card.getOrCreateTag().putByteArray("Data", new byte[] { 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0 });
+        CompoundTag compoundTag = card.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        compoundTag.putByteArray("Data", new byte[] { 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0 });
+        card.set(DataComponents.CUSTOM_DATA, CustomData.of(compoundTag));
         scene.overlay()
                 .showControls(util.vector().topOf(reader), Pointing.DOWN, 30)
                 .withItem(card).rightClick();
@@ -1213,7 +1218,7 @@ public class DeviceScenes {
                 .setValue(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER), false);
         scene.world().setBlocks(util.select().position(3,3,3), Blocks.TALL_GRASS.defaultBlockState()
                 .setValue(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER), false);
-        scene.world().replaceBlocks(util.select().position(3, 2, 1), Blocks.GRASS.defaultBlockState(), false);
+        scene.world().replaceBlocks(util.select().position(3, 2, 1), Blocks.SHORT_GRASS.defaultBlockState(), false);
 
         scene.overlay().showText(60)
                 .text("Placing one in a plains biome.")
@@ -1551,7 +1556,7 @@ public class DeviceScenes {
         scene.idle(10);
         scene.electric().connect(connector2, 0, device_connector, 0);
         scene.idle(20);
-        ItemStack bulb = new ItemStack(ModdedItems.LIGHT_BULB);
+        ItemStack bulb = new ItemStack(ModdedItems.LIGHT_BULB.get());
         Vec3 frontVec = util.vector().blockSurface(util.grid().at(1, 4, 3), Direction.WEST);
                 //.add(-.125, 0, 0);
 

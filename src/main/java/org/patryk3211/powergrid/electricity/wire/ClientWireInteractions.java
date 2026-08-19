@@ -15,6 +15,7 @@
  */
 package org.patryk3211.powergrid.electricity.wire;
 
+import dev.ryanhcode.sable.companion.SableCompanion;
 import net.createmod.catnip.math.VecHelper;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -32,6 +33,7 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.patryk3211.powergrid.collections.ModdedItems;
+import org.patryk3211.powergrid.collections.ModdedDataComponents;
 import org.patryk3211.powergrid.collections.ModdedPackets;
 import org.patryk3211.powergrid.electricity.wire.powercord.CordEntity;
 import org.patryk3211.powergrid.network.packets.AlternatePlacementStatusC2SPacket;
@@ -176,6 +178,12 @@ public class ClientWireInteractions {
             return InteractionResult.FAIL;
         }
 
+        var existingEndpoint = stack.getOrDefault(ModdedDataComponents.CONNECTION_DATA.get(), WireConnection.EMPTY).endpoint();
+        if(existingEndpoint != null && existingEndpoint.getSubLevel(mc.level) != SableCompanion.INSTANCE.getContaining(entity)) {
+            mc.player.displayClientMessage(Lang.translate("message.connection_failed").style(ChatFormatting.RED).component(), true);
+            return InteractionResult.FAIL;
+        }
+
         var hitPos = target.getLocation();
         var segment = getSegment(entity, hitPos);
         if(segment == null)
@@ -187,8 +195,8 @@ public class ClientWireInteractions {
 
     public static void alternatePlacementCheck(Minecraft client, int action) {
         var stack = client.player.getMainHandItem();
-        if(!IWire.isWire(client.level, stack.getItem()) || stack.getTagElement("Connection") == null) {
-            if(alternatePlacementStatus) {
+        if(!IWire.isWire(client.level, stack.getItem()) || !stack.has(ModdedDataComponents.CONNECTION_DATA.get())) {
+            if (alternatePlacementStatus) {
                 alternatePlacementStatus = false;
                 ModdedPackets.sendToServer(new AlternatePlacementStatusC2SPacket(false));
             }

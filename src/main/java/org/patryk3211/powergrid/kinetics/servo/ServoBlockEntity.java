@@ -21,6 +21,7 @@ import com.simibubi.create.content.kinetics.transmission.sequencer.SequencedGear
 import com.simibubi.create.content.kinetics.transmission.sequencer.SequencerInstructions;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -158,8 +159,8 @@ public class ServoBlockEntity extends GeneratingKineticBlockEntity implements IE
     }
 
     @Override
-    protected void read(CompoundTag compound, boolean clientPacket) {
-        super.read(compound, clientPacket);
+    protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(compound, registries, clientPacket);
         generatedSpeed = compound.getFloat("GeneratedSpeed");
         currentAngle = compound.getInt("Angle");
         if(generatedSpeed != 0) {
@@ -171,8 +172,8 @@ public class ServoBlockEntity extends GeneratingKineticBlockEntity implements IE
     }
 
     @Override
-    protected void write(CompoundTag compound, boolean clientPacket) {
-        super.write(compound, clientPacket);
+    protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(compound, registries, clientPacket);
         compound.putFloat("GeneratedSpeed", generatedSpeed);
         compound.putInt("Angle", currentAngle);
     }

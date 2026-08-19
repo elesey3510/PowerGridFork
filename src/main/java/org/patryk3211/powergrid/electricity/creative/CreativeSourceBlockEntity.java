@@ -22,6 +22,7 @@ import net.createmod.catnip.math.VecHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -106,8 +107,8 @@ public class CreativeSourceBlockEntity extends ElectricBlockEntity implements IH
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         if(tag.contains("Overwrite"))
             overwrite = tag.getBoolean("Overwrite");
         if(tag.contains("Freq")) {
@@ -118,8 +119,8 @@ public class CreativeSourceBlockEntity extends ElectricBlockEntity implements IH
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         if(overwrite)
             tag.putBoolean("Overwrite", true);
         if(frequency != 0) {
@@ -132,8 +133,8 @@ public class CreativeSourceBlockEntity extends ElectricBlockEntity implements IH
     }
 
     @Override
-    public void writeSafe(CompoundTag tag) {
-        super.writeSafe(tag);
+    public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
+        super.writeSafe(tag, registries);
         if(overwrite)
             tag.putBoolean("Overwrite", true);
         if(frequency != 0) {

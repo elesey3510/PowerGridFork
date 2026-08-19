@@ -18,6 +18,7 @@ package org.patryk3211.powergrid.electricity.electricswitch;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -106,8 +107,8 @@ public class SwitchBlockEntity extends ElectricBlockEntity implements IHaveGoggl
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         if(isButton) {
             buttonTimeout = tag.getByte("Timeout");
             isNormallyClosed = tag.getBoolean("NormallyClosed");
@@ -125,8 +126,8 @@ public class SwitchBlockEntity extends ElectricBlockEntity implements IHaveGoggl
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         if(overvoltResistance != null) {
             tag.putFloat("Overvolted", overvoltResistance);
             if(playEffect) {

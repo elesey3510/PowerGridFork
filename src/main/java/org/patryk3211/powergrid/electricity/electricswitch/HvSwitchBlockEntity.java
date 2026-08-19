@@ -16,12 +16,14 @@
 package org.patryk3211.powergrid.electricity.electricswitch;
 
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import dev.ryanhcode.sable.companion.SableCompanion;
 import net.createmod.catnip.animation.LerpedFloat;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundSource;
@@ -207,8 +209,13 @@ public class HvSwitchBlockEntity extends ElectricKineticBlockEntity implements S
                     .relative(facing, 1.2)
                     .subtract(0, 0.125, 0)
                     .offsetRandom(level.random, 0.1f);
+            var sublevel = SableCompanion.INSTANCE.getContaining(level, worldPosition);
             level.addAlwaysVisibleParticle(new ZapParticleData(end, true, 2, 10, 0.1f),
                     true, origin.x, origin.y, origin.z, 0, 0, 0);
+            if(sublevel != null) {
+                origin = sublevel.lastPose().transformPosition(origin);
+                end = sublevel.lastPose().transformPosition(end);
+            }
             double dist = origin.distanceTo(end);
             int sparks = (int) (dist / 0.2f);
             for(int i = 0; i < sparks + 1; ++i) {
@@ -257,21 +264,21 @@ public class HvSwitchBlockEntity extends ElectricKineticBlockEntity implements S
     }
 
     @Override
-    protected void write(CompoundTag compound, boolean clientPacket) {
-        super.write(compound, clientPacket);
+    protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(compound, registries, clientPacket);
         compound.put("Rod", rod.writeNBT());
         compound.putBoolean("Sparking", sparking);
     }
 
     @Override
-    public void writeSafe(CompoundTag tag) {
-        super.writeSafe(tag);
+    public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
+        super.writeSafe(tag, registries);
         tag.put("Rod", rod.writeNBT());
     }
 
     @Override
-    protected void read(CompoundTag compound, boolean clientPacket) {
-        super.read(compound, clientPacket);
+    protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(compound, registries, clientPacket);
         // Always force the value to be set
         rod.readNBT(compound.getCompound("Rod"), false);
         if(wire == null && isClosed())

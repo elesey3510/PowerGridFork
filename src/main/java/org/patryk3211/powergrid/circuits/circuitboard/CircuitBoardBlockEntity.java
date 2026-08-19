@@ -27,8 +27,11 @@ import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -358,27 +361,27 @@ public class CircuitBoardBlockEntity extends ElectricBlockEntity implements IEle
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         tag.put("Schematic", schematic.serializeNbt());
         if(baked != null)
             baked.write(tag);
-        super.write(tag, clientPacket);
+        super.write(tag, registries, clientPacket);
     }
 
     @Override
-    public void writeSafe(CompoundTag tag) {
-        super.writeSafe(tag);
+    public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
+        super.writeSafe(tag, registries);
         tag.put("Schematic", schematic.serializeSafeNbt());
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         if(!tag.contains("Schematic")) {
             if(level != null)
                 level.destroyBlock(worldPosition, false);
             return;
         }
-        super.read(tag, clientPacket);
+        super.read(tag, registries, clientPacket);
         if(!clientPacket || tag.getBoolean("Rebuild") || baked == null) {
             schematic.deserializeNbt(tag.getCompound("Schematic"));
             bakeCircuit();
@@ -552,7 +555,7 @@ public class CircuitBoardBlockEntity extends ElectricBlockEntity implements IEle
         var stack = ModdedBlocks.CIRCUIT_BOARD.asStack();
         var tag = new CompoundTag();
         tag.put("Schematic", schematic.serializeSafeNbt());
-        stack.setTag(tag);
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         return new ItemRequirement(ItemRequirement.ItemUseType.CONSUME, stack);
     }
 }

@@ -18,10 +18,12 @@ package org.patryk3211.powergrid.collections;
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
 import org.patryk3211.powergrid.PowerGrid;
 
 public class ModdedTags {
-    public static final String FORGE_NAMESPACE = PowerGrid.forPlatform("c", "forge");
+    public static final String FORGE_NAMESPACE = "c";
+    public static final String SABLE_NAMESPACE = "sable";
 
     public enum Item {
         RAW_ORES(FORGE_NAMESPACE, "raw_ores"),
@@ -43,7 +45,7 @@ public class ModdedTags {
         }
 
         Item(String namespace, String name) {
-            tag = itemTag(new ResourceLocation(namespace, name));
+            tag = itemTag(ResourceLocation.fromNamespaceAndPath(namespace, name));
         }
     }
 
@@ -53,12 +55,22 @@ public class ModdedTags {
         IGNORE_IN_ROTOR_ASSEMBLY_SIZE("ignore_in_rotor_assembly_size"),
         CONDUCTIVE_GROUND("conductive_ground"),
         CARBON_PILE_BLOCK("carbon_pile_block"),
-        GLASS_BLOCK(FORGE_NAMESPACE, "glass"),
+
+        SABLE_QUARTER_VOLUME(SABLE_NAMESPACE, "quarter_volume"),
+        SABLE_HALF_VOLUME(SABLE_NAMESPACE, "half_volume"),
+
+        SABLE_SUPER_LIGHT(SABLE_NAMESPACE, "super_light"),
+        SABLE_LIGHT(SABLE_NAMESPACE, "light"),
+        SABLE_HEAVY(SABLE_NAMESPACE, "heavy"),
+        SABLE_SUPER_HEAVY(SABLE_NAMESPACE, "super_heavy"),
+
+        GLASS_BLOCK(FORGE_NAMESPACE, "glass_blocks"),
         GLASS_PANE(FORGE_NAMESPACE, "glass_panes"),
         SOLAR_QUARTER_LIGHT("solar_quarter_light"),
         SOLAR_HALF_LIGHT("solar_half_light"),
         SOLAR_3QUARTER_LIGHT("solar_three_quarters_light"),
-        SOLAR_FULL_LIGHT("solar_full_light");
+        SOLAR_FULL_LIGHT("solar_full_light"),
+        ;
 
         public final TagKey<net.minecraft.world.level.block.Block> tag;
 
@@ -67,7 +79,21 @@ public class ModdedTags {
         }
 
         Block(String namespace, String name) {
-            tag = blockTag(new ResourceLocation(namespace, name));
+            tag = blockTag(ResourceLocation.fromNamespaceAndPath(namespace, name));
+        }
+    }
+
+    public enum Entity {
+        RETAIN_IN_SUB_LEVEL(SABLE_NAMESPACE, "retain_in_sub_level");
+
+        public final TagKey<EntityType<?>> tag;
+
+        Entity(String name) {
+            this(PowerGrid.MOD_ID, name);
+        }
+
+        Entity(String namespace, String name) {
+            tag = entityTag(ResourceLocation.fromNamespaceAndPath(namespace, name));
         }
     }
 
@@ -81,12 +107,17 @@ public class ModdedTags {
         throw new AssertionError();
     }
 
+    @ExpectPlatform
+    public static TagKey<EntityType<?>> entityTag(ResourceLocation id) {
+        throw new AssertionError();
+    }
+
     public static TagKey<net.minecraft.world.item.Item> forgeItemTag(String path) {
-        return itemTag(new ResourceLocation(FORGE_NAMESPACE, path));
+        return itemTag(ResourceLocation.fromNamespaceAndPath(FORGE_NAMESPACE, path));
     }
 
     public static TagKey<net.minecraft.world.level.block.Block> forgeBlockTag(String path) {
-        return blockTag(new ResourceLocation(FORGE_NAMESPACE, path));
+        return blockTag(ResourceLocation.fromNamespaceAndPath(FORGE_NAMESPACE, path));
     }
 
     public static TagKey<net.minecraft.world.item.Item> plates(String ingot) {

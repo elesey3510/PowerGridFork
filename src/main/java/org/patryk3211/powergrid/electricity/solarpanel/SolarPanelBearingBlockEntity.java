@@ -10,9 +10,12 @@ import com.simibubi.create.content.kinetics.transmission.sequencer.SequencerInst
 import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.utility.ServerSpeedProvider;
+import dev.ryanhcode.sable.companion.SableCompanion;
+import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import net.createmod.catnip.math.AngleHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
@@ -28,6 +31,7 @@ import org.patryk3211.powergrid.electricity.base.Rotation4ElectricBlock;
 import org.patryk3211.powergrid.electricity.base.ThermalBehaviour;
 import org.patryk3211.powergrid.electricity.sim.ElectricWire;
 import org.patryk3211.powergrid.electricity.sim.node.CurrentSourceWire;
+import org.patryk3211.powergrid.electricity.sim.special.PNJunctionWireSolar;
 import org.patryk3211.powergrid.kinetics.base.ElectricKineticBlockEntity;
 
 import java.util.List;
@@ -44,7 +48,6 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
     protected double sequencedAngleLimit;
     SolarPanelBearingContraption contraption;
     private float prevAngle;
-    private boolean firstTick = true;
     private float ambientTemp = -2000f;
     private int rayCastDelay = 0;
     private float sunVisibility = 0;
@@ -142,12 +145,12 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
             return;
         }
 
-        if (firstTick) {
-            ambientTemp = ThermalBehaviour.getAmbientTemperature(world, this.getBlockPos());
-            if (ambientTemp <= ThermalBehaviour.ABSOLUTE_ZERO)
-                ambientTemp = 22f;
-            firstTick = false;
-        }
+        var pos = SableCompanion.INSTANCE.projectOutOfSubLevel(level, getContraptionCenter(movedContraption));
+        var contraptionCenterPos = BlockPos.containing(JOMLConversion.toMojang(pos));
+
+        ambientTemp = ThermalBehaviour.getAmbientTemperature(world, contraptionCenterPos);
+        if (ambientTemp <= ThermalBehaviour.ABSOLUTE_ZERO)
+            ambientTemp = 22f;
         float cloudCover = getWeather(world);
 
         if (contraption.panelNormal == null) return;
@@ -157,7 +160,12 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
         Vec3 worldDir = worldTip.subtract(worldOrigin).normalize();
         panelNormal = new Vector3d(worldDir.x, worldDir.y, worldDir.z);
 
-        var irradiance = getIrradiance(getAM(world), cloudCover, this.getBlockPos().getY(), world);
+        var subLevel = SableCompanion.INSTANCE.getContaining(this);
+        if (subLevel != null) {
+            subLevel.logicalPose().orientation().transform(panelNormal);
+            panelNormal.normalize();
+        }
+        var irradiance = getIrradiance(getAM(world), cloudCover, contraptionCenterPos.getY(), world);
         int panelsInParallel = parallelNumbers.getDivisor();
         int panelsInSeries = contraption.getPanelBlocks() / parallelNumbers.getDivisor();
         double Rs = (RS * panelsInSeries) / panelsInParallel;
@@ -182,8 +190,8 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
         if (rayCastDelay-- == 0){
             sunVisibility = sunRaycast(world);
             rayCastDelay = world.random.nextInt(41) + 10;
-            skyVisible = skyCheck(world, BlockPos.containing(getContraptionCenter(movedContraption)
-                    .add(new Vec3(panelNormal.x, panelNormal.y, panelNormal.z))));
+            skyVisible = skyCheck(world, BlockPos.containing(JOMLConversion.toMojang(getContraptionCenter(movedContraption)
+                    .add(panelNormal.x, panelNormal.y, panelNormal.z))));
         }
 
         double sunAngle = world.getSunAngle(0);
@@ -200,12 +208,14 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
             diffuseLight = 0;
             reflected = 0;
         }
-
         return (irradiance * sunVisibility) * transmittance * cosIncidence + diffuseLight +  reflected;
     }
 
     public float sunRaycast(Level world) {
-        var blockPos = getBlockPos();
+        var pos = SableCompanion.INSTANCE.projectOutOfSubLevel(world, new Vector3d(this.getBlockPos().getX() + .5,
+                this.getBlockPos().getY() + .5, this.getBlockPos().getZ() + .5));
+
+        var blockPos = BlockPos.containing(pos.x, pos.y, pos.z);
         int castLength = 0;
         ChunkAccess chunk;
 
@@ -223,9 +233,9 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
                 break;
             }
         }
-        var centerPanelPos = getContraptionCenter(movedContraption);
+        var centerPanelPos = JOMLConversion.toMojang(SableCompanion.INSTANCE.projectOutOfSubLevel(world, getContraptionCenter(movedContraption)));
         var end = centerPanelPos.add(new Vec3(sunX, sunY, 0).scale(castLength));
-        var results = DDA(world, centerPanelPos.add(new Vec3(panelNormal.x, panelNormal.y, panelNormal.z)), end);
+        var results = DDA(world, centerPanelPos.add(JOMLConversion.toMojang(panelNormal)), end);
         float returnValue = 1;
         for (DDAHit result : results) {
             BlockState blockState;
@@ -263,7 +273,7 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
         panelNormal = new Vector3d(n.getX(), n.getY(), n.getZ());
     }
 
-    private Vec3 getContraptionCenter(AbstractContraptionEntity entity) {
+    private Vector3d getContraptionCenter(AbstractContraptionEntity entity) {
         double x = 0, y = 0, z = 0;
         int count = 0;
         for (BlockPos local : entity.getContraption().getBlocks().keySet()) {
@@ -272,9 +282,11 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
             z += local.getZ() + 0.5;
             count++;
         }
-        if (count == 0) return entity.position();
+        if (count == 0){
+            return JOMLConversion.toJOML(entity.position());
+        }
         Vec3 localCenter = new Vec3(x / count, y / count, z / count);
-        return entity.toGlobalVector(localCenter, 1.0f);
+        return JOMLConversion.toJOML(entity.toGlobalVector(localCenter, 1.0f));
     }
 
     public void assemble() {
@@ -397,21 +409,21 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
     }
 
     @Override
-    public void write(CompoundTag compound, boolean clientPacket) {
+    public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
         compound.putBoolean("Running", running);
         compound.putFloat("Angle", angle);
         if (sequencedAngleLimit >= 0)
             compound.putDouble("SequencedAngleLimit", sequencedAngleLimit);
         compound.putInt("StringsInParallel", parallelNumbers.getDivisor());
         compound.putInt("PanelCount", parallelNumbers.getPanelCount());
-        AssemblyException.write(compound, lastException);
-        super.write(compound, clientPacket);
+        AssemblyException.write(compound, registries, lastException);
+        super.write(compound, registries, clientPacket);
     }
 
     @Override
-    protected void read(CompoundTag compound, boolean clientPacket) {
+    protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
         if (wasMoved) {
-            super.read(compound, clientPacket);
+            super.read(compound, registries, clientPacket);
             return;
         }
 
@@ -419,10 +431,10 @@ public class SolarPanelBearingBlockEntity extends ElectricKineticBlockEntity imp
         running = compound.getBoolean("Running");
         angle = compound.getFloat("Angle");
         sequencedAngleLimit = compound.contains("SequencedAngleLimit") ? compound.getDouble("SequencedAngleLimit") : -1;
-        lastException = AssemblyException.read(compound);
+        lastException = AssemblyException.read(compound, registries);
         if (compound.contains("PanelCount"))
             parallelNumbers.refreshDivisors(compound.getInt("PanelCount"));
-        super.read(compound, clientPacket);
+        super.read(compound, registries, clientPacket);
         if (compound.contains("StringsInParallel"))
             parallelNumbers.setByDivisor(compound.getInt("StringsInParallel"));
         if (!clientPacket)

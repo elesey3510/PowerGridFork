@@ -272,5 +272,7 @@
   "powergrid.display_source.thermometer.vs_absolute_max" : "vs 175º percent",
   "powergrid.display_source.thermometer.vs_measured_max" : "vs Max Measured percent",
   "powergrid.display_source.thermometer.current" : "Temperature",
-  "powergrid.display_source.thermometer.measured_max" : "Max Temperature"
+  "powergrid.display_source.thermometer.measured_max" : "Max Temperature",
+
+  "powergrid.solar_panel_bearing.slider": "Strings in Parallel × Panels in String"
 }

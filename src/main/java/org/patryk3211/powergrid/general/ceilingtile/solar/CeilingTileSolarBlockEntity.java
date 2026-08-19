@@ -1,9 +1,8 @@
 package org.patryk3211.powergrid.general.ceilingtile.solar;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.SectionPos;
-import net.minecraft.core.Vec3i;
+import dev.ryanhcode.sable.companion.SableCompanion;
+import dev.ryanhcode.sable.companion.math.JOMLConversion;
+import net.minecraft.core.*;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -22,6 +21,7 @@ import org.patryk3211.powergrid.electricity.base.ProxyElectricBehaviour;
 import org.patryk3211.powergrid.electricity.base.ThermalBehaviour;
 import org.patryk3211.powergrid.electricity.sim.ElectricWire;
 import org.patryk3211.powergrid.electricity.sim.node.CurrentSourceWire;
+import org.patryk3211.powergrid.electricity.sim.special.PNJunctionWireSolar;
 import org.patryk3211.powergrid.electricity.sim.special.TransmissionLinePart;
 import org.patryk3211.powergrid.electricity.solarpanel.SolarHelper;
 
@@ -104,14 +104,25 @@ public class CeilingTileSolarBlockEntity extends ElectricBlockEntity {
         if (world == null || world.isClientSide()) return;
         if (currentSource == null) return;
 
-        if (firstTick) {
-            ambientTemp = ThermalBehaviour.getAmbientTemperature(world, this.getBlockPos());
+        var worldPos = SableCompanion.INSTANCE.projectOutOfSubLevel(world,
+                new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ()));
+        var blockPos = BlockPos.containing(JOMLConversion.toMojang(worldPos));
+        var subLevel = SableCompanion.INSTANCE.getContaining(this);
+
+        if (firstTick || subLevel != null) {
+            ambientTemp = ThermalBehaviour.getAmbientTemperature(world, blockPos);
             if (ambientTemp <= ThermalBehaviour.ABSOLUTE_ZERO)
                 ambientTemp = 22f;
             firstTick = false;
+            getPlacedBlockRotation();
         }
 
-        if (currentSource == null) return;
+        if(subLevel != null) {
+            getPlacedBlockRotation();
+            subLevel.logicalPose().orientation().transform(panelNormal);
+            panelNormal.normalize();
+        }
+
         var iter = connectedPanelBEs.values().iterator();
         while(iter.hasNext()) {
             var panel = iter.next();
@@ -123,10 +134,8 @@ public class CeilingTileSolarBlockEntity extends ElectricBlockEntity {
         }
 
         int panelCount = 1 + connectedPanelBEs.size();
-        float cloudCover = getWeather(level);
-
-        getPlacedBlockRotation();
-        irradiance = getIrradiance(getAM(level), cloudCover, this.getBlockPos().getY(), level);
+        float cloudCover = getWeather(world);
+        irradiance = getIrradiance(getAM(world), cloudCover, blockPos.getY(), world);
 
         double v0 = currentSource.potentialDifference();
         var currentCellTemp = SolarHelper.getCellTemp(irradiance, ambientTemp);
@@ -186,6 +195,10 @@ public class CeilingTileSolarBlockEntity extends ElectricBlockEntity {
             blockPos = BlockPos.containing(raycastPos);
         }
 
+        var d = SableCompanion.INSTANCE.projectOutOfSubLevel(world, new Vector3d(blockPos.getX() + .5,
+                blockPos.getY() + .5, blockPos.getZ() + .5));
+        blockPos = BlockPos.containing(d.x, d.y, d.z);
+
         int castLength = 0;
         ChunkAccess chunk;
         double sunAngle = world.getSunAngle(0);
@@ -202,8 +215,8 @@ public class CeilingTileSolarBlockEntity extends ElectricBlockEntity {
                 break;
             }
         }
-        Vec3 centerBlockPos;
-        centerBlockPos = Objects.requireNonNullElseGet(raycastPos, () -> getBlockPos().getCenter().add(0, 0, 0));
+
+        var centerBlockPos = blockPos.getCenter().add(0, 0, 0);
         var end = centerBlockPos.add(new Vec3(sunX, sunY, 0).scale(castLength));
         var results = DDA(world, centerBlockPos, end);
         float returnValue = 1;
@@ -259,8 +272,8 @@ public class CeilingTileSolarBlockEntity extends ElectricBlockEntity {
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         if(controller != null) {
             tag.put("Controller", NbtUtils.writeBlockPos(controller));
         } else {
@@ -277,8 +290,8 @@ public class CeilingTileSolarBlockEntity extends ElectricBlockEntity {
     }
 
     @Override
-    public void writeSafe(CompoundTag tag) {
-        super.writeSafe(tag);
+    public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
+        super.writeSafe(tag, registries);
         if(lastKnownPos != null) {
             if (controller != null) {
                 tag.put("Controller", NbtUtils.writeBlockPos(controller));
@@ -296,11 +309,11 @@ public class CeilingTileSolarBlockEntity extends ElectricBlockEntity {
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         Vec3i offset = null;
         if(tag.contains("LastKnownPos")) {
-            lastKnownPos = NbtUtils.readBlockPos(tag.getCompound("LastKnownPos"));
+            lastKnownPos = NbtUtils.readBlockPos(tag, "LastKnownPos").orElse(worldPosition);
             if(!worldPosition.equals(lastKnownPos)) {
                 offset = worldPosition.subtract(lastKnownPos);
             }
@@ -310,16 +323,22 @@ public class CeilingTileSolarBlockEntity extends ElectricBlockEntity {
         }
         connectedPanels.clear();
         if(tag.contains("Controller")) {
-            controller = NbtUtils.readBlockPos(tag.getCompound("Controller"));
-            if(offset != null)
-                controller = controller.offset(offset);
-            makeProxy();
+            var opt = NbtUtils.readBlockPos(tag, "Controller");
+            if(opt.isPresent()) {
+                controller = opt.get();
+                if (offset != null)
+                    controller = controller.offset(offset);
+                makeProxy();
+            }
         } else {
             controller = null;
             if(tag.contains("Connected", ListTag.TAG_LIST)) {
-                var list = tag.getList("Connected", ListTag.TAG_COMPOUND);
+                var list = tag.getList("Connected", ListTag.TAG_INT_ARRAY);
                 for(int i = 0; i < list.size(); ++i) {
-                    var pos = NbtUtils.readBlockPos(list.getCompound(i));
+                    var ints = list.getIntArray(i);
+                    if(ints.length != 3)
+                        continue;
+                    var pos = new BlockPos(ints[0], ints[1], ints[2]);
                     if(offset != null)
                         pos = pos.offset(offset);
                     connectedPanels.add(pos);

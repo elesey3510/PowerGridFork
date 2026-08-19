@@ -19,6 +19,7 @@ import com.simibubi.create.AllEnchantments;
 import dev.architectury.utils.Env;
 import dev.architectury.utils.EnvExecutor;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -30,16 +31,26 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.patryk3211.powergrid.collections.ModdedConfigs;
+import org.patryk3211.powergrid.collections.ModdedDataComponents;
 import org.patryk3211.powergrid.collections.ModdedSoundEvents;
 import org.patryk3211.powergrid.equipment.ItemBoostUtils;
 import org.patryk3211.powergrid.utility.ClientSideAccess;
 import org.patryk3211.powergrid.utility.Lang;
 
 public class BatteryUtils {
+
     public static int getMaxCharge(ItemStack stack) {
-        return getMaxCharge(EnchantmentHelper.getItemEnchantmentLevel(AllEnchantments.CAPACITY.get(), stack));
+        ItemEnchantments enchantments = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+        int level = 0;
+        for (var entry : enchantments.entrySet()) {
+            if (entry.getKey().is(AllEnchantments.CAPACITY)) {
+                level = entry.getIntValue();
+                break;
+            }
+        }
+        return getMaxCharge(level);
     }
 
     public static int getMaxCharge(int level) {
@@ -48,10 +59,7 @@ public class BatteryUtils {
     }
 
     public static int getCurrentCharge(ItemStack stack) {
-        if(!stack.hasTag())
-            return 0;
-        var nbt = stack.getTag();
-        return nbt.getInt("Charge");
+        return stack.getOrDefault(ModdedDataComponents.PORTABLE_BATTERY_CHARGE.get(), 0);
     }
 
     public static float drawEnergy(Player player, int energy) {
@@ -69,12 +77,11 @@ public class BatteryUtils {
             if(outputPercent < 0.25f)
                 outputPercent = 0.25f;
         }
-        var tag = stack.getTag();
-        if(energy == 0 || tag == null)
+        if(charge < energy) {
+            stack.remove(ModdedDataComponents.PORTABLE_BATTERY_CHARGE.get());
             return 0.0f;
-        tag.putInt("Charge", Math.max(charge - energy, 0));
-        if(charge < energy)
-            return 0.0f;
+        }
+        stack.set(ModdedDataComponents.PORTABLE_BATTERY_CHARGE.get(), Math.max(charge - energy, 0));
         if(player instanceof ServerPlayer serverPlayer) {
             float maxCharge = getMaxCharge(stack);
             sendWarning(serverPlayer, charge, charge - energy, (maxCharge / 10));
@@ -100,8 +107,7 @@ public class BatteryUtils {
             if(outputPercent < 0.25f)
                 outputPercent = 0.25f;
         }
-        var tag = battery.getTag();
-        if(energy == 0 || tag == null)
+        if(energy == 0 || !battery.has(ModdedDataComponents.PORTABLE_BATTERY_CHARGE.get()))
             return 0.0f;
         if(charge < energy)
             return 0.0f;

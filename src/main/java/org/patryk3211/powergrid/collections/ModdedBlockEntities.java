@@ -43,6 +43,7 @@ import org.patryk3211.powergrid.electricity.gauge.*;
 import org.patryk3211.powergrid.electricity.grounding.GroundingRodBlockEntity;
 import org.patryk3211.powergrid.electricity.heater.HeaterBlockEntity;
 import org.patryk3211.powergrid.electricity.light.factorylight.FactoryLightBlockEntity;
+import org.patryk3211.powergrid.electricity.light.factorylight.FactoryLightLightBlockEntity;
 import org.patryk3211.powergrid.electricity.light.factorylight.FactoryLightRenderer;
 import org.patryk3211.powergrid.electricity.light.fixture.LightFixtureBlockEntity;
 import org.patryk3211.powergrid.electricity.light.fixture.LightFixtureRenderer;
@@ -291,7 +292,7 @@ public class ModdedBlockEntities {
                     .register();
 
     public static final BlockEntityEntry<ElectricFanBlockEntity> ELECTRIC_FAN =
-            REGISTRATE.blockEntity("electric_fan", ElectricFanBlockEntity::new)
+            REGISTRATE.blockEntity("electric_fan", SubstituteBlockEntityProvider.INSTANCE.get(ElectricFanBlockEntity.class))
                     .validBlock(ModdedBlocks.ELECTRIC_FAN)
                     .renderer(() -> ElectricFanRenderer::new)
                     .register();
@@ -431,6 +432,11 @@ public class ModdedBlockEntities {
                     .visual(() -> SolarPanelBearingVisual::new)
                     .validBlock(ModdedBlocks.SOLAR_PANEL_BEARING)
                     .renderer(() -> SolarPanelBearingRenderer::new)
+                    .register();
+
+    public static final BlockEntityEntry<FactoryLightLightBlockEntity> LIGHT_LIGHT =
+            REGISTRATE.blockEntity("light_light", FactoryLightLightBlockEntity::new)
+                    .validBlock(ModdedBlocks.FACTORY_LIGHT_LIGHT)
                     .register();
 
     public static final BlockEntityEntry<ModularDisplayBlockEntity> MODULAR_DISPLAY =

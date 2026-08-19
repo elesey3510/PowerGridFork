@@ -90,6 +90,8 @@ public class BlockWireEndpoint implements IWireEndpoint {
     @Override
     @NotNull
     public Vec3 getExactPosition(Level world) {
+//        var rawPos = IElectric.getTerminalPos(world, pos, this.terminal);
+//        return SableCompanion.INSTANCE.projectOutOfSubLevel(world, rawPos);
         return IElectric.getTerminalPos(world, pos, this.terminal);
     }
 
@@ -175,5 +177,14 @@ public class BlockWireEndpoint implements IWireEndpoint {
     @Override
     public IWireEndpoint makeOffset(BlockPos offset) {
         return new BlockWireEndpoint(pos.offset(offset), terminal);
+    }
+
+    @Override
+    public MoveAction shouldMove(Level level, Iterable<BlockPos> allBlocks) {
+        for(var block : allBlocks) {
+            if(block.equals(pos))
+                return MoveAction.MOVE;
+        }
+        return MoveAction.STAY;
     }
 }

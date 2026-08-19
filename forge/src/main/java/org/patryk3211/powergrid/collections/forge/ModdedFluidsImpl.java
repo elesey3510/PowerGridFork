@@ -30,32 +30,32 @@ import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.ForgeFlowingFluid;
+import net.neoforged.neoforge.fluids.BaseFlowingFluid;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.patryk3211.powergrid.PowerGrid;
 import org.patryk3211.powergrid.collections.ModdedDamageTypes;
 
 import static org.patryk3211.powergrid.PowerGrid.REGISTRATE;
 
 public class ModdedFluidsImpl {
-    public static final FluidEntry<ForgeFlowingFluid.Flowing> ACID =
+    public static final FluidEntry<BaseFlowingFluid.Flowing> ACID =
             REGISTRATE.fluid("acid",
                             ResourceLocation.tryBuild("powergrid", "block/acid_still"),
                             ResourceLocation.tryBuild("powergrid", "block/acid_flow"),
                             AcidFluidType::new)
                     .tag(FluidTags.create(PowerGrid.asResource("acid")))
                     .lang("Blazing Acid")
-                    .source(ForgeFlowingFluid.Source::new)
+                    .source(BaseFlowingFluid.Source::new)
                         .bucket()
                         .lang("Blazing Acid Bucket")
                         .build()
                     .transform(translucent())
                     .register();
 
-    private static <T extends ForgeFlowingFluid, P> NonNullUnaryOperator<FluidBuilder<T, P>> translucent() {
+    private static <T extends BaseFlowingFluid, P> NonNullUnaryOperator<FluidBuilder<T, P>> translucent() {
         return b -> {
             EnvExecutor.runInEnv(Env.CLIENT, () -> () -> {
-                b.renderType(RenderType::translucent);
+                b.renderType(() -> RenderType::translucent);
             });
             return b;
         };

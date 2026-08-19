@@ -1,8 +1,15 @@
 package org.patryk3211.powergrid.electricity.solarpanel;
 
+import dev.ryanhcode.sable.companion.SableCompanion;
+import dev.ryanhcode.sable.companion.SubLevelAccess;
+import dev.ryanhcode.sable.companion.math.BoundingBox3d;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.ContraptionCollider;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.Contraption;
+import com.simibubi.create.content.contraptions.ContraptionCollider;
+import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -17,6 +24,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.joml.Vector3d;
 import org.patryk3211.powergrid.collections.ModdedBlocks;
 import org.patryk3211.powergrid.collections.ModdedConfigs;
 import org.patryk3211.powergrid.collections.ModdedTags;
@@ -76,6 +84,7 @@ public class SolarHelper {
         ServerLevel serverWorld = (ServerLevel) level;
         var checkBox = new AABB(start, end);
         List<AbstractContraptionEntity> candidates = level.getEntitiesOfClass(AbstractContraptionEntity.class, checkBox);
+        var subLevels = SableCompanion.INSTANCE.getAllIntersecting(level, new BoundingBox3d(checkBox));
         List<DDAHit> hits = new ArrayList<>();
         Vec3 dir = end.subtract(start);
         double length = dir.length();
@@ -101,10 +110,13 @@ public class SolarHelper {
         double tMaxY = norm.y == 0 ? Double.MAX_VALUE : (stepY > 0 ? Math.ceil(start.y) - start.y : start.y - Math.floor(start.y)) / Math.abs(norm.y);
         double tMaxZ = norm.z == 0 ? Double.MAX_VALUE : (stepZ > 0 ? Math.ceil(start.z) - start.z : start.z - Math.floor(start.z)) / Math.abs(norm.z);
         for (int i = 0; i < length; i++) {
+
             BlockPos pos = new BlockPos(x, y, z);
+            Vec3 worldPos = new Vec3(x + 0.5, y + 0.5, z + 0.5);
             BlockState state = level.getBlockState(pos);
-            var handledByContraption = false;
             if (showDebugLines) debugLines(serverWorld, pos, ParticleTypes.SOUL_FIRE_FLAME);
+
+            var handledByContraption = false;
             for (AbstractContraptionEntity candidate : candidates) {
                 Contraption contraption = candidate.getContraption();
                 if (contraption == null) continue;
@@ -112,7 +124,6 @@ public class SolarHelper {
                 Vec3 localStart = ContraptionCollider.worldToLocalPos(start, candidate);
                 Vec3 localEnd = ContraptionCollider.worldToLocalPos(end, candidate);
 
-                Vec3 worldPos = new Vec3(x + 0.5, y + 0.5, z + 0.5);
                 Vec3 local = ContraptionCollider.worldToLocalPos(worldPos, candidate.getAnchorVec(), candidate.getContraption().entity.getRotationState());
                 BlockPos localPos = BlockPos.containing(local);
 
@@ -131,7 +142,32 @@ public class SolarHelper {
                 }
             }
 
-            if (!handledByContraption){
+            boolean handledBySublevel = false;
+            for (SubLevelAccess subLevel : subLevels) {
+                if (subLevel.boundingBox().contains(worldPos.x, worldPos.y, worldPos.z)) {
+                    Vec3 local = subLevel.logicalPose().transformPositionInverse(worldPos);
+                    BlockPos localPos = BlockPos.containing(local);
+                    BlockState localState = level.getBlockState(localPos);
+                    if (!localState.isAir()) {
+                        if (!localState.isCollisionShapeFullBlock(level, localPos) && localState.getBlock() != Blocks.WATER) {
+                            VoxelShape shape = localState.getShape(level, localPos);
+                            if (shape.isEmpty()) continue;
+                            BlockHitResult hit = shape.clip(start, end, pos);
+                            if (hit != null) {
+                                hits.add(new DDAHit(localPos, null));
+                                if (showDebugLines) debugLines(serverWorld, worldPos, ParticleTypes.FLAME);
+                            }
+                        } else {
+                            hits.add(new DDAHit(localPos, null));
+                            if (showDebugLines) debugLines(serverWorld, worldPos, ParticleTypes.FLAME);
+                        }
+                    }
+                    handledBySublevel = true;
+                    break;
+                }
+            }
+
+            if (!handledBySublevel && !handledByContraption) {
                 if (!state.isAir()) {
                     if (!state.isCollisionShapeFullBlock(level, pos) && state.getBlock() != Blocks.WATER) {
                         VoxelShape shape = state.getShape(level, pos);
@@ -197,37 +233,103 @@ public class SolarHelper {
     }
 
     public static boolean skyCheck(Level world, BlockPos pos) {
-        if (!world.canSeeSky(pos)){
-            var topY = world.getHeight(Heightmap.Types.MOTION_BLOCKING, pos.getX(), pos.getZ());
-            var list = DDA(world, pos.getCenter(), pos.getCenter().add(0, topY - pos.getY(), 0));
-            boolean hit = false;
-            for (DDAHit result : list) {
-                BlockState blockState;
-                if (result.contraption() != null) {
-                    blockState = result.contraption().getContraption().getBlocks().get(result.worldOrLocalPos()).state();
-                } else {
-                    blockState = world.getBlockState(result.worldOrLocalPos());
-                }
-
-                if (blockState.is(ModdedBlocks.SOLAR_PANEL.get())) {
-                    if (result.worldOrLocalPos().equals(pos)) {
-                        continue;
+        var subLevel = SableCompanion.INSTANCE.getContaining(world, new Vector3d(pos.getX(), pos.getY(), pos.getZ()));
+        if (subLevel == null) {
+            if (!world.canSeeSky(pos)) {
+                var topY = world.getHeight(Heightmap.Types.MOTION_BLOCKING, pos.getX(), pos.getZ());
+                var list = DDA(world, pos.getCenter(), pos.getCenter().add(0, topY - pos.getY(), 0));
+                boolean hit = false;
+                for (DDAHit result : list) {
+                    BlockState blockState;
+                    if (result.contraption() != null) {
+                        blockState = result.contraption().getContraption().getBlocks().get(result.worldOrLocalPos()).state();
                     } else {
-                        hit = true;
-                        break;
+                        blockState = world.getBlockState(result.worldOrLocalPos());
                     }
-                }
 
-                if (blockState.is(ModdedTags.Block.SOLAR_QUARTER_LIGHT.tag)) continue;
-                if (blockState.is(ModdedTags.Block.SOLAR_HALF_LIGHT.tag)) continue;
-                if (blockState.is(ModdedTags.Block.SOLAR_3QUARTER_LIGHT.tag)) continue;
-                if (blockState.is(ModdedTags.Block.SOLAR_FULL_LIGHT.tag)) continue;
-                hit = true;
-                break;
+                    if (blockState.is(ModdedBlocks.SOLAR_PANEL.get())) {
+                        if (result.worldOrLocalPos().equals(pos)) {
+                            continue;
+                        } else {
+                            hit = true;
+                            break;
+                        }
+                    }
+
+                    if (blockState.is(ModdedTags.Block.SOLAR_QUARTER_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_HALF_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_3QUARTER_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_FULL_LIGHT.tag)) continue;
+                    hit = true;
+                    break;
+                }
+                return !hit;
+            }
+            return true;
+        } else {
+            var worldPos = BlockPos.containing(JOMLConversion.toMojang(SableCompanion.INSTANCE.projectOutOfSubLevel(world,
+                    new Vector3d(pos.getX(), pos.getY(), pos.getZ()))));
+            if (world.canSeeSky(worldPos) && world.canSeeSky(pos)) return true;
+            var topYWorld = world.getHeight(Heightmap.Types.MOTION_BLOCKING, worldPos.getX(), worldPos.getZ());
+            var topYSubLevel = world.getHeight(Heightmap.Types.MOTION_BLOCKING, pos.getX(), pos.getZ());
+            boolean hit = false;
+            if (topYSubLevel > pos.getY()) {
+                var list = DDA(world, pos.getCenter(), pos.getCenter().add(0, topYSubLevel - pos.getY(), 0));
+                for (DDAHit result : list) {
+                    BlockState blockState;
+                    if (result.contraption() != null) {
+                        blockState = result.contraption().getContraption().getBlocks().get(result.worldOrLocalPos()).state();
+                    } else {
+                        blockState = world.getBlockState(result.worldOrLocalPos());
+                    }
+
+                    if (blockState.is(ModdedBlocks.SOLAR_PANEL.get())) {
+                        if (result.worldOrLocalPos().equals(pos)) {
+                            continue;
+                        } else {
+                            hit = true;
+                            break;
+                        }
+                    }
+
+                    if (blockState.is(ModdedTags.Block.SOLAR_QUARTER_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_HALF_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_3QUARTER_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_FULL_LIGHT.tag)) continue;
+                    hit = true;
+                    break;
+                }
+            }
+
+            if (topYWorld > worldPos.getY()) {
+                var list = DDA(world, worldPos.getCenter(), worldPos.getCenter().add(0, topYWorld - worldPos.getY(), 0));
+                for (DDAHit result : list) {
+                    BlockState blockState;
+                    if (result.contraption() != null) {
+                        blockState = result.contraption().getContraption().getBlocks().get(result.worldOrLocalPos()).state();
+                    } else {
+                        blockState = world.getBlockState(result.worldOrLocalPos());
+                    }
+
+                    if (blockState.is(ModdedBlocks.SOLAR_PANEL.get())) {
+                        if (result.worldOrLocalPos().equals(pos)) {
+                            continue;
+                        } else {
+                            hit = true;
+                            break;
+                        }
+                    }
+
+                    if (blockState.is(ModdedTags.Block.SOLAR_QUARTER_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_HALF_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_3QUARTER_LIGHT.tag)) continue;
+                    if (blockState.is(ModdedTags.Block.SOLAR_FULL_LIGHT.tag)) continue;
+                    hit = true;
+                    break;
+                }
             }
             return !hit;
         }
-        return true;
     }
 
     public static Vec3 getSolarPanelCenter(BlockPos self, Set<BlockPos> connectedPanels) {

@@ -1,7 +1,7 @@
 package org.patryk3211.powergrid.compat.cold_sweat;
 
 import com.momosoftworks.coldsweat.api.event.core.registry.BlockTempRegisterEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.bus.api.SubscribeEvent;
 
 public class ColdSweatBridge {
     @SubscribeEvent

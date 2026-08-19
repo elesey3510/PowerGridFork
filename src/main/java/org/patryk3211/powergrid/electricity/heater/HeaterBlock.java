@@ -19,12 +19,18 @@ import com.simibubi.create.foundation.block.IBE;
 import net.createmod.catnip.math.VoxelShaper;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -35,10 +41,8 @@ import org.patryk3211.powergrid.electricity.info.IHaveElectricProperties;
 import org.patryk3211.powergrid.electricity.info.Power;
 import org.patryk3211.powergrid.electricity.info.Resistance;
 
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 
-@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class HeaterBlock extends HorizontalElectricBlock implements IBE<HeaterBlockEntity>, IHaveElectricProperties, IAcceptConnector {
     private static final VoxelShaper SHAPER = VoxelShaper.forHorizontal(box(0, 0, 5, 16, 16, 11), Direction.NORTH);
@@ -60,6 +64,11 @@ public class HeaterBlock extends HorizontalElectricBlock implements IBE<HeaterBl
     @Override
     public BlockEntityType<? extends HeaterBlockEntity> getBlockEntityType() {
         return ModdedBlockEntities.HEATING_COIL.get();
+    }
+
+    @Override
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return InteractionResult.PASS;
     }
 
     @Override

@@ -2,6 +2,7 @@ package org.patryk3211.powergrid.electricity.gauge;
 
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.MenuProvider;
@@ -103,16 +104,16 @@ public class EnergyMeterBlockEntity extends ElectricBlockEntity implements MenuP
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         lastEnergy = energy = tag.getDouble("Energy");
         measurementPrecision = tag.getBoolean("Wh");
         lastRedstoneEnergy = tag.getInt("Redstone");
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         tag.putDouble("Energy", energy);
         tag.putBoolean("Wh", measurementPrecision);
         tag.putInt("Redstone", lastRedstoneEnergy);

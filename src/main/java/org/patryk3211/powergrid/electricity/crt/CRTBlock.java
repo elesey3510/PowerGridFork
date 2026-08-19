@@ -22,6 +22,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.ItemStack;
@@ -97,12 +98,11 @@ public class CRTBlock extends HorizontalElectricBlock implements IBE<CRTBlockEnt
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        var stack = player.getItemInHand(hand);
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
         if(stack.getItem() instanceof DyeItem dye) {
-            return onBlockEntityUse(level, pos, be -> be.setColor(dye.getDyeColor()));
+            return onBlockEntityUseItemOn(level, pos, be -> be.setColor(dye.getDyeColor()));
         } else {
-            return tryEncase(state, level, pos, player.getItemInHand(hand), player, hand, hit);
+            return tryEncase(state, level, pos, player.getItemInHand(hand), player, hand, hitResult);
         }
     }
 

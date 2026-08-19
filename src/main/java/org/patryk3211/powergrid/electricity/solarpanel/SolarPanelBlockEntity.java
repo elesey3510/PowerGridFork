@@ -1,5 +1,8 @@
 package org.patryk3211.powergrid.electricity.solarpanel;
 
+import dev.ryanhcode.sable.companion.SableCompanion;
+import dev.ryanhcode.sable.companion.math.JOMLConversion;
+import net.minecraft.core.*;
 import com.simibubi.create.api.contraption.transformable.TransformableBlockEntity;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import net.minecraft.core.BlockPos;
@@ -102,14 +105,25 @@ public class SolarPanelBlockEntity extends ElectricBlockEntity implements Transf
         if (world == null || world.isClientSide()) return;
         if (currentSource == null) return;
 
-        if (firstTick) {
-            ambientTemp = ThermalBehaviour.getAmbientTemperature(world, this.getBlockPos());
+        var worldPos = SableCompanion.INSTANCE.projectOutOfSubLevel(world,
+                new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ()));
+        var blockPos = BlockPos.containing(JOMLConversion.toMojang(worldPos));
+        var subLevel = SableCompanion.INSTANCE.getContaining(this);
+
+        if (firstTick || subLevel != null) {
+            ambientTemp = ThermalBehaviour.getAmbientTemperature(world, blockPos);
             if (ambientTemp <= ThermalBehaviour.ABSOLUTE_ZERO)
                 ambientTemp = 22f;
             firstTick = false;
+            getPlacedBlockRotation();
         }
 
-        if (currentSource == null) return;
+        if(subLevel != null) {
+            getPlacedBlockRotation();
+            subLevel.logicalPose().orientation().transform(panelNormal);
+            panelNormal.normalize();
+        }
+
         var iter = connectedPanelBEs.values().iterator();
         while(iter.hasNext()) {
             var panel = iter.next();
@@ -121,10 +135,8 @@ public class SolarPanelBlockEntity extends ElectricBlockEntity implements Transf
         }
 
         int panelCount = 1 + connectedPanelBEs.size();
-        float cloudCover = getWeather(level);
-
-        getPlacedBlockRotation();
-        irradiance = getIrradiance(getAM(level), cloudCover, this.getBlockPos().getY(), level);
+        float cloudCover = getWeather(world);
+        irradiance = getIrradiance(getAM(world), cloudCover, blockPos.getY(), world);
 
         double v0 = currentSource.potentialDifference();
         var currentCellTemp = getCellTemp(irradiance, ambientTemp);
@@ -154,6 +166,7 @@ public class SolarPanelBlockEntity extends ElectricBlockEntity implements Transf
             } else {
                 if (controller == null){
                     var multiBlockCenter = getSolarPanelCenter(this.getBlockPos(), connectedPanels);
+                    SableCompanion.INSTANCE.projectOutOfSubLevel(level, JOMLConversion.toJOML(multiBlockCenter));
                     sunVisibility = sunRaycast(world, multiBlockCenter);
                     rayCastDelay = world.random.nextInt(41) + 10;
                     skyVisible = skyCheck(world, BlockPos.containing(multiBlockCenter));
@@ -184,6 +197,10 @@ public class SolarPanelBlockEntity extends ElectricBlockEntity implements Transf
             blockPos = BlockPos.containing(raycastPos);
         }
 
+        var d = SableCompanion.INSTANCE.projectOutOfSubLevel(world, new Vector3d(blockPos.getX() + .5,
+                blockPos.getY() + .5, blockPos.getZ() + .5));
+        blockPos = BlockPos.containing(d.x, d.y, d.z);
+
         int castLength = 0;
         ChunkAccess chunk;
         double sunAngle = world.getSunAngle(0);
@@ -202,7 +219,11 @@ public class SolarPanelBlockEntity extends ElectricBlockEntity implements Transf
         }
 
         Vec3 centerBlockPos;
-        centerBlockPos = Objects.requireNonNullElseGet(raycastPos, () -> getBlockPos().getCenter().add(0, 0, 0));
+        if (raycastPos == null) {
+            centerBlockPos = blockPos.getCenter().add(0, 0, 0);
+        } else {
+            centerBlockPos = raycastPos;
+        }
         var end = centerBlockPos.add(new Vec3(sunX, sunY, 0).scale(castLength));
         var results = DDA(world, centerBlockPos, end);
         float returnValue = 1;
@@ -258,8 +279,8 @@ public class SolarPanelBlockEntity extends ElectricBlockEntity implements Transf
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         if(controller != null) {
             tag.put("Controller", NbtUtils.writeBlockPos(controller.subtract(worldPosition)));
         } else {
@@ -274,8 +295,8 @@ public class SolarPanelBlockEntity extends ElectricBlockEntity implements Transf
     }
 
     @Override
-    public void writeSafe(CompoundTag tag) {
-        super.writeSafe(tag);
+    public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
+        super.writeSafe(tag, registries);
         if (controller != null) {
             tag.put("Controller", NbtUtils.writeBlockPos(controller.subtract(worldPosition)));
         } else {
@@ -290,18 +311,24 @@ public class SolarPanelBlockEntity extends ElectricBlockEntity implements Transf
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         connectedPanels.clear();
         if(tag.contains("Controller")) {
-            controller = NbtUtils.readBlockPos(tag.getCompound("Controller")).offset(worldPosition);
-            makeProxy();
+            var opt = NbtUtils.readBlockPos(tag, "Controller");
+            if(opt.isPresent()) {
+                controller = opt.get().offset(worldPosition);
+                makeProxy();
+            }
         } else {
             controller = null;
             if(tag.contains("Connected", ListTag.TAG_LIST)) {
-                var list = tag.getList("Connected", ListTag.TAG_COMPOUND);
+                var list = tag.getList("Connected", ListTag.TAG_INT_ARRAY);
                 for(int i = 0; i < list.size(); ++i) {
-                    var pos = NbtUtils.readBlockPos(list.getCompound(i));
+                    var ints = list.getIntArray(i);
+                    if(ints.length != 3)
+                        continue;
+                    var pos = new BlockPos(ints[0], ints[1], ints[2]);
                     connectedPanels.add(pos.offset(worldPosition));
                 }
                 if(level != null)

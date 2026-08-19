@@ -17,9 +17,10 @@ package org.patryk3211.powergrid.electricity.crt;
 
 import dev.architectury.utils.EnvExecutor;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -78,20 +79,20 @@ public class CRTBlockEntity extends ElectricBlockEntity {
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         tag.putInt("Color", traceColor.ordinal());
     }
 
     @Override
-    public void writeSafe(CompoundTag tag) {
-        super.writeSafe(tag);
+    public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
+        super.writeSafe(tag, registries);
         tag.putInt("Color", traceColor.ordinal());
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         if (tag.contains("Color")) {
             traceColor = DyeColor.values()[tag.getInt("Color")];
         } else {
@@ -211,9 +212,9 @@ public class CRTBlockEntity extends ElectricBlockEntity {
         builder.add(anodeCathode);
     }
 
-    public InteractionResult setColor(DyeColor color) {
+    public ItemInteractionResult setColor(DyeColor color) {
         traceColor = color;
         notifyUpdate();
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
     }
 }

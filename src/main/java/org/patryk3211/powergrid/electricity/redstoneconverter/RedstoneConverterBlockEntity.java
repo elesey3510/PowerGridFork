@@ -43,6 +43,7 @@ public class RedstoneConverterBlockEntity extends ElectricBlockEntity {
     }
 
     public void updateResistance(float strength) {
+        strength = Mth.clamp(strength, 0, 1);
         float min = resistance("min"), max = resistance("max");
         nonInverting.setResistance(min * strength + max * (1 - strength));
         inverting.setResistance(min * (1 - strength) + max * strength);

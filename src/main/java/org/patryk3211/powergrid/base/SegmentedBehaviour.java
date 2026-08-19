@@ -19,6 +19,7 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -157,8 +158,8 @@ public abstract class SegmentedBehaviour<T extends SegmentedBehaviour<T>> extend
     }
 
     @Override
-    public void read(CompoundTag compound, boolean clientPacket) {
-        super.read(compound, clientPacket);
+    public void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(compound, registries, clientPacket);
         if(compound.contains("LastKnownPos")) {
             var posArray = compound.getIntArray("LastKnownPos");
             lastKnownPos = new BlockPos(posArray[0], posArray[1], posArray[2]);
@@ -177,10 +178,13 @@ public abstract class SegmentedBehaviour<T extends SegmentedBehaviour<T>> extend
             segments.clear();
             if(clientPacket) {
                 makeController();
-                var segments = compound.getList("Segments", ListTag.TAG_COMPOUND);
+                var segments = compound.getList("Segments", ListTag.TAG_INT_ARRAY);
                 var level = getWorld();
                 for(int i = 0; i < segments.size(); ++i) {
-                    var pos = NbtUtils.readBlockPos(segments.getCompound(i));
+                    var ints = segments.getIntArray(i);
+                    if(ints.length != 3)
+                        continue;
+                    var pos = new BlockPos(ints[0], ints[1], ints[2]);
                     var behavior = BlockEntityBehaviour.get(level, pos, getType());
                     if(behavior == null)
                         continue;
@@ -191,8 +195,8 @@ public abstract class SegmentedBehaviour<T extends SegmentedBehaviour<T>> extend
     }
 
     @Override
-    public void write(CompoundTag compound, boolean clientPacket) {
-        super.write(compound, clientPacket);
+    public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(compound, registries, clientPacket);
         if(lastKnownPos != null) {
             compound.putIntArray("LastKnownPos", new int[]{lastKnownPos.getX(), lastKnownPos.getY(), lastKnownPos.getZ()});
         }
