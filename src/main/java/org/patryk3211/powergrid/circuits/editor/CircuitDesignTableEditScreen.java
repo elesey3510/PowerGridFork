@@ -124,6 +124,10 @@ public class CircuitDesignTableEditScreen<T extends CircuitEditMenu<?>> extends 
     private boolean saving = false;
     private int unsavedPopupTimeout = 0;
 
+    public ComponentPropertiesWidget getPropertiesWidget() {
+        return this.propertiesWidget;
+    }
+    
     public CircuitDesignTableEditScreen(T container, Inventory inv, net.minecraft.network.chat.Component title) {
         super(container, inv, title);
 
