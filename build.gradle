@@ -73,6 +73,8 @@ allprojects {
 			url = "https://cursemaven.com"
 			content { includeGroup("curse.maven") }
 		}
+		//for EMI
+		maven { url = "https://maven.terraformersmc.com/" }
 	}
 
 	loom {
@@ -97,6 +99,8 @@ allprojects {
 		compileOnly("org.ejml:ejml-simple:0.44.0")
 		compileOnly("org.ejml:ejml-ddense:0.44.0")
 		compileOnly("org.ejml:ejml-dsparse:0.44.0")
+		//for EMI still AI shitcode
+		modCompileOnly "dev.emi:emi-xplat-intermediary:${emi_version}:api" 
 	}
 
 	java {
