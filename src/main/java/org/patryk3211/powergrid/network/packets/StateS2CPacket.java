@@ -112,11 +112,11 @@ public class StateS2CPacket implements S2CPacket {
                     var start = wrapper().readerIndex();
                     element.readFromSync(wrapper(), useDoubles);
                     var end = wrapper().readerIndex();
-                    if (end - start > entryLength) {
+                    if(end - start > entryLength) {
                         if(ModdedConfigs.logsEnabled())
                             PowerGrid.LOGGER.warn("Buffer read overrun (Entry of {} bytes, read {} bytes) for {}", entryLength, end - start, element);
                         wrapper().readerIndex(start + entryLength);
-                    } else if (end - start < entryLength) {
+                    } else if(end - start < entryLength) {
                         if(ModdedConfigs.logsEnabled())
                             PowerGrid.LOGGER.warn("Buffer read underrun (Entry of {} bytes, read {} bytes) for {}", entryLength, end - start, element);
                         wrapper().readerIndex(start + entryLength);
