@@ -51,7 +51,14 @@ public class ComponentPropertiesWidget extends AbstractSimiWidget {
         this.right = right;
         this.textRenderer = textRenderer;
     }
-
+    // STUPID AI SHITCODE IDK
+    public boolean isVisible() {
+        return component != null;
+    }
+    public int getTotalHeight() {
+        return 16 + (propertyCount * 20) + 6;
+    }
+    // STUPID AI SHITCODE IDK
     /**
      * Populate this widget with settings for the provided component.
      * @param component the component to create settings widgets for
